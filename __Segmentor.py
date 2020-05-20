@@ -1,56 +1,19 @@
 import sys
 import gdal
 import ogr
-
-import fiona
 import rasterio.mask
 from affine import Affine
-from shapely.geometry import Polygon
-from sklearn.cluster import KMeans, Birch, AgglomerativeClustering
-from sklearn.mixture import GaussianMixture, BayesianGaussianMixture
 import matplotlib.pyplot as plt
 import os
 from shapely import geometry, wkt
-import numpy as np
-import pandas as pd
-from sklearn.preprocessing import FunctionTransformer
-import itertools
-import cv2
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-
-from skimage import segmentation
-import torch.nn.init
-
 from osgeo import osr
 from skimage import data, exposure
-from joblib import delayed, parallel
-import re
-import scipy
-from sklearn.feature_extraction import DictVectorizer
-from skimage import data
-from skimage import filters
-
-from skimage.feature import hog
 from sklearn.preprocessing import MinMaxScaler, RobustScaler
-from sklearn import preprocessing
-
-from skimage.util import random_noise
 from sklearn import model_selection, decomposition
-from sklearn.svm import SVC
-from sklearn.model_selection import GridSearchCV
-from sklearn.metrics import classification_report
-import imageio
 from scipy.ndimage.filters import generic_filter
 from scipy import ndimage
-
 import numpy as np
 from scipy.stats import mode
-import joblib
-from joblib import Parallel, delayed
-
 
 # $ conda install --name <conda_env_name> -c <channel_name> <package_name>
 sys.path.append("O:/Student_Data/Wesemeyer/Master/conda/myenv/Lib/site-packages/bayseg-master/bayseg")
