@@ -2,6 +2,7 @@ import osr
 import gdal
 import ogr
 import os
+import numpy as np
 
 
 def WriteArrayToDisk(array, data_path_name_str, gt, polygonite=False, fieldo=None, EPSG=3035):
@@ -56,3 +57,14 @@ def WriteArrayToDisk(array, data_path_name_str, gt, polygonite=False, fieldo=Non
     band = None
     mean = None
     sourceRaster = None
+
+
+def create_mask_from_ndim(array):
+    """
+
+    :param array: should be of shape bands, x, x
+    :return:
+    """
+    out_image_mask = array
+    mask = np.any(out_image_mask > 0, axis=0)
+    return mask

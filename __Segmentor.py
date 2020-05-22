@@ -3,7 +3,6 @@ import sys
 import rasterio.mask
 from affine import Affine
 import matplotlib.pyplot as plt
-import os
 from shapely import geometry
 
 from skimage import exposure
@@ -91,17 +90,6 @@ def get_extent(raster):
     rasterGeometry.AddGeometry(ring)
     """
     return rasterGeometry
-
-
-def create_mask_from_ndim(array):
-    """
-
-    :param array: should be of shape bands, x, x
-    :return:
-    """
-    out_image_mask = array
-    mask = np.any(out_image_mask > 0, axis=0)
-    return mask
 
 
 def scfilter(image, iterations, kernel):

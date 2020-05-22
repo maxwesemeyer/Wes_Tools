@@ -1,10 +1,6 @@
-import ogr
-import gdal
-import fiona
 import rasterio.mask
 from affine import Affine
 import matplotlib.pyplot as plt
-import os
 import pandas as pd
 import itertools
 import torch
@@ -14,12 +10,11 @@ import torch.optim as optim
 from torch.autograd import Variable
 from skimage import segmentation
 import torch.nn.init
-import re
 from sklearn.preprocessing import MinMaxScaler
 import imageio
-import numpy as np
 from sklearn import decomposition
 from .__utils import *
+#import cv2
 ########################################################################################################################
 
 
@@ -58,6 +53,15 @@ class MyNet(nn.Module):
         x = self.conv1(x)
         x = F.relu(x)
         x = self.bn1(x)
+        """
+        #### experimenting
+        x_ = x.detach().numpy()
+        x_ = x_.squeeze()
+        x_ = np.moveaxis(x_, 0, 2)
+        plt.imshow(x_)
+        plt.show()
+        #### experimenting
+        """
         for i in range(nConv - 1):
             x = self.conv2[i](x)
             x = F.relu(x)
@@ -84,13 +88,13 @@ def minmax_transfor(X):
     return result
 
 
-
-def segment_cnn(raster_l, vector_geom, n_band=11, nConv = 1, lr_var=0.15):
+def segment_cnn(raster_l, vector_geom, data_path, custom_subsetter=range(5,65),n_band=11, nConv = 1, lr_var=0.15):
 
     field_counter = "{}{}{}{}{}".format(str(n_band), '_', str(nConv), '_', str(lr_var))
     aggregated_results = pd.DataFrame()
     i = 1
-
+    subsetter_tss = custom_subsetter
+    subsetter_tsi = custom_subsetter
 
     for shp in vector_geom:
         with rasterio.open(raster_l) as src:
@@ -98,24 +102,13 @@ def segment_cnn(raster_l, vector_geom, n_band=11, nConv = 1, lr_var=0.15):
 
             create_mask = True
             if create_mask:
-                out_image_mask = out_image.copy()
-                gt_gdal = Affine.to_gdal(out_transform)
-                # out_image = out_image[46,:,:].copy
-                w = np.where(out_image_mask < 0)
-                ones = np.where(out_image_mask > 0)
-                out_image_mask[w] = 0
-                out_image_mask[ones] = 1
-                mask = out_image_mask[46, :, :]
-                print(np.sum(mask))
-        #with rasterio.open(data_path + 'mask_BB_3035_clip.tif') as src:
-            #mask, out_transform_mask = rasterio.mask.mask(src, shapes, crop=True)
-        with rasterio.open(raster_string) as src:
+                mask = create_mask_from_ndim(out_image)
+
+        with rasterio.open(raster_l) as src:
             out_image_agg, out_mask_agg = rasterio.mask.mask(src, [shp], crop=True)
             out_image_agg = out_image_agg.copy() / 10000
             out_image_agg = out_image_agg[subsetter_tsi, :, :]
             shape_out_tsi = out_image_agg.shape
-
-            # print(out_image.shape, mask_subset.shape)
 
             gt_gdal = Affine.to_gdal(out_transform)
             #################################
@@ -123,7 +116,7 @@ def segment_cnn(raster_l, vector_geom, n_band=11, nConv = 1, lr_var=0.15):
             out_meta = src.meta
 
             out_image = out_image.copy() / 10000
-            out_image = out_image[subsetter, :,:]
+            out_image = out_image[subsetter_tsi, :,:]
             shape_out = out_image.shape
             max_valid_pixel = (sum(np.reshape(mask[:, :], (shape_out[1] * shape_out[2])) > 0))
             print('Parcel Area:', max_valid_pixel * 100 / 1000000, ' km²')
@@ -285,8 +278,8 @@ def segment_cnn(raster_l, vector_geom, n_band=11, nConv = 1, lr_var=0.15):
                             images.append((im_target_rgb[:, :, 0]))
 
 
-                            cv2.imshow("output", im_target_rgb[:, :, [0, 1, 2]])
-                            cv2.waitKey(n_band)
+                            #cv2.imshow("output", im_target_rgb[:, :, [0, 1, 2]])
+                            #cv2.waitKey(n_band)
 
                         # superpixel refinement
                         # TODO: use Torch Variable instead of numpy for faster calculation
@@ -301,6 +294,7 @@ def segment_cnn(raster_l, vector_geom, n_band=11, nConv = 1, lr_var=0.15):
 
                         target = Variable(target)
                         loss = loss_fn(output, target)
+                        print(output)
                         loss.backward()
                         optimizer.step()
 
@@ -372,7 +366,7 @@ def segment_cnn(raster_l, vector_geom, n_band=11, nConv = 1, lr_var=0.15):
                             print(aggregated_results)
                     #field_counter += 1
     aggregated_results.to_csv(data_path + '/cnn_results.csv')
-
+"""
 # global variables
 ########################################################################################################################
 # raster_string = '/PCA_Berlin_Predict.tif'
@@ -430,3 +424,4 @@ with fiona.open(vector_string) as shapefile:
 raster_string = 'Z:/lower_saxony_sentinel2_TSA_coreg/X0061_Y0046/stack.tif'
 
 
+"""
