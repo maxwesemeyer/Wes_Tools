@@ -1,15 +1,14 @@
 import sys
-import gdal
-import ogr
+
 import rasterio.mask
 from affine import Affine
 import matplotlib.pyplot as plt
 import os
-from shapely import geometry, wkt
-from osgeo import osr
-from skimage import data, exposure
-from sklearn.preprocessing import MinMaxScaler, RobustScaler
-from sklearn import model_selection, decomposition
+from shapely import geometry
+
+from skimage import exposure
+from sklearn.preprocessing import MinMaxScaler
+from sklearn import decomposition
 from scipy.ndimage.filters import generic_filter
 from scipy import ndimage
 import numpy as np

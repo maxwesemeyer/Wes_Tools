@@ -1,3 +1,6 @@
+import sys
+import geopandas as gpd
+
 sys.path.append("C:/Users/BorgoDörp/OneDrive/My_OBIA_package/")
 from wesobia.Accuracy_ import *
 from wesobia.Plots_OBIA import *
