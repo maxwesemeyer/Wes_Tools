@@ -1,15 +1,15 @@
 import sys
 import geopandas as gpd
 
-sys.path.append("C:/Users/BorgoDörp/OneDrive/My_OBIA_package/")
-from wesobia.Accuracy_ import *
-from wesobia.Plots_OBIA import *
-from wesobia.__Segmentor import *
+sys.path.append("C:/Users/BorgoDörp/OneDrive/")
+from Wes_Tools.Accuracy_ import *
+from Wes_Tools.Plots_OBIA import *
+from Wes_Tools.__Segmentor import *
 
 if __name__ == '__main__':
     data_path = 'C:/Users/BorgoDörp/OneDrive/MA_bilder/'
     raster_path = data_path + '2018-2020_001-365_HL_TSA_SEN2L_NDV_TSS.tif'
-    list_of_shapes = Shape_finder('W:/Student_Data/Wesemeyer/Master/results_new/')
+    list_of_shapes = Shape_finder('O:/Student_Data/Wesemeyer/Master/results_new/')
     print(list_of_shapes)
     pse_list = []
     overall_list = []

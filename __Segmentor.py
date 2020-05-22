@@ -13,7 +13,7 @@ from scipy.ndimage.filters import generic_filter
 from scipy import ndimage
 import numpy as np
 from scipy.stats import mode
-
+from .__utils import *
 # $ conda install --name <conda_env_name> -c <channel_name> <package_name>
 sys.path.append("O:/Student_Data/Wesemeyer/Master/conda/myenv/Lib/site-packages/bayseg-master/bayseg")
 import bayseg
