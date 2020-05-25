@@ -1,16 +1,8 @@
 import sys
-
-import rasterio.mask
-from affine import Affine
-import matplotlib.pyplot as plt
 from shapely import geometry
-
 from skimage import exposure
-from sklearn.preprocessing import MinMaxScaler
-from sklearn import decomposition
 from scipy.ndimage.filters import generic_filter
 from scipy import ndimage
-import numpy as np
 from scipy.stats import mode
 from .__utils import *
 # $ conda install --name <conda_env_name> -c <channel_name> <package_name>
@@ -162,9 +154,8 @@ def segment_2(string_to_raster, vector_geom, indexo=np.random.randint(0, 100000)
         # plt.show()
     """
     # imageio.mimsave(data_path + 'bayseg.gif', images_iters)
-    file_str = "{}{}{}".format(data_patho + "/out_labels_pca", str(field_counter), "_")
-    file_str_maj = "{}{}{}".format(data_patho + "/out_labels_majority", str(field_counter), "_")
-    file_str_ie = "{}{}{}".format(data_patho + "/out_labels_ie_pca", str(field_counter), "_")
+    file_str = "{}{}{}".format(data_patho + "/Bayseg_", str(field_counter), "_")
+    file_str_ie = "{}{}{}".format(data_patho + "/Bayseg_ie_", str(field_counter), "_")
     # to save as integer
     labels_img = np.reshape(labels, (three_d_image.shape[0], three_d_image.shape[1]))
     ie_img = np.reshape(ie, (three_d_image.shape[0], three_d_image.shape[1])) * 10000

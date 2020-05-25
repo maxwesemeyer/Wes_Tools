@@ -1,8 +1,4 @@
-import rasterio.mask
-from affine import Affine
 import matplotlib.pyplot as plt
-import pandas as pd
-import itertools
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -10,15 +6,14 @@ import torch.optim as optim
 from torch.autograd import Variable
 from skimage import segmentation
 import torch.nn.init
-from sklearn.preprocessing import MinMaxScaler
 import imageio
-from sklearn import decomposition
+
 from .__utils import *
 #import cv2
 ########################################################################################################################
 
 
-def set_global_Cnn_variables(bands=11, convs=2,):
+def set_global_Cnn_variables(bands=11, convs=2):
     """
     CNN needs some global variables
     :param bands: number of bands to be used for CNN
@@ -89,8 +84,10 @@ def minmax_transfor(X):
 
 
 class Segmentation():
-    def __init__(self, MMU):
-        prepare_data = []
+    def __init__(self, string_to_raster, vector_geom, custom_subsetter, MMU, bands=11, convs=2, ):
+        set_global_Cnn_variables(bands, convs)
+        three_d_image, two_d_im_pca, mask_local, gt_gdal = prepare_data(string_to_raster, vector_geom, custom_subsetter,
+                                                                        n_band, MMU=MMU, PCA=True)
 
 
 def segment_cnn(string_to_raster, vector_geom, indexo=np.random.randint(0, 100000),

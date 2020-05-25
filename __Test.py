@@ -1,14 +1,15 @@
 import sys
 import geopandas as gpd
 import pandas as pd
-import numpy as np
 from joblib import Parallel, delayed
 import fiona
 sys.path.append("C:/Users/BorgoDörp/OneDrive/")
+
 from Wes_Tools.Accuracy_ import *
 from Wes_Tools.Plots_OBIA import *
 from Wes_Tools.__Segmentor import *
 from Wes_Tools.__CNN_segment import *
+
 
 if __name__ == '__main__':
     data_path = 'C:/Users/BorgoDörp/OneDrive/MA_bilder/'

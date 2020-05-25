@@ -164,7 +164,7 @@ def prepare_data(raster_l, vector_geom, custom_subsetter=range(5,65), n_band=11,
             scaled_arg_2d = np.reshape(im, (im.shape[0] * im.shape[1], len(arg_10)))
             im[np.isnan(im)] = 0
             scaled_arg_2d[np.isnan(scaled_arg_2d)] = 0
-            print(scaled_arg_2d)
+
             if PCA:
                 #################
                 # PCA
