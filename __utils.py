@@ -119,20 +119,9 @@ def prepare_data(raster_l, vector_geom, custom_subsetter=range(5,65), n_band=11,
     subsetter_tsi = custom_subsetter
     with rasterio.open(raster_l) as src:
         out_image, out_transform = rasterio.mask.mask(src, shp, crop=True)
-
-        create_mask = True
-        if create_mask:
-            mask = create_mask_from_ndim(out_image)
-
-    with rasterio.open(raster_l) as src:
-        out_image_agg, out_mask_agg = rasterio.mask.mask(src, shp, crop=True)
-        out_image_agg = out_image_agg.copy() / 10000
-        out_image_agg = out_image_agg[subsetter_tsi, :, :]
-        shape_out_tsi = out_image_agg.shape
-
+        mask = create_mask_from_ndim(out_image)
         gt_gdal = Affine.to_gdal(out_transform)
         #################################
-
         out_meta = src.meta
 
         out_image = out_image.copy() / 10000
@@ -170,17 +159,9 @@ def prepare_data(raster_l, vector_geom, custom_subsetter=range(5,65), n_band=11,
             arg_10 = select_bands_sd(out_image_nan, max_valid_pixels_=max_valid_pixel)
             print(arg_10)
 
-            # labels = segmentation.felzenszwalb(scaled_shaped[:,:,arg_10[:3]], scale=10)
-            # labels = segmentation.slic(scaled_shaped[:,:,arg], n_segments=6, compactness=6)
-            # labels = segmentation.slic(scaled_shaped[:, :, arg], n_segments=90, compactness=15)
-
             im = scaled_shaped[:, :, arg_10]
             im[im == 0] = np.nan
-
             scaled_arg_2d = np.reshape(im, (im.shape[0] * im.shape[1], len(arg_10)))
-            # plt.hist(scaled_arg_2d[:,0], bins = 50)
-            # plt.show()
-
             im[np.isnan(im)] = 0
             scaled_arg_2d[np.isnan(scaled_arg_2d)] = 0
             print(scaled_arg_2d)
