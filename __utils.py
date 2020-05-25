@@ -7,6 +7,34 @@ import rasterio
 from affine import Affine
 from sklearn.preprocessing import MinMaxScaler
 from sklearn import decomposition
+import re
+import rasterio.mask
+
+
+def Shape_finder(input_path):
+    # Alternative...
+    #print(glob.glob(data_path + '*.shp'))
+    data_path_input = input_path
+    file_path_raster = []
+    for root, dirs, files in os.walk(data_path_input, topdown=True):
+        for file in files:
+            if re.match(".*[s][h][p]{1,2}$", file):
+                file_path_raster.append(str(root + file))
+            else:
+                continue
+    return file_path_raster
+
+
+def Tif_finder(input_path):
+    data_path_input = input_path
+    file_path_raster = []
+    for root, dirs, files in os.walk(data_path_input, topdown=True):
+        for file in files:
+            if re.match(".*[t][i][f]{1,2}$", file):
+                file_path_raster.append(str(root + file))
+            else:
+                continue
+    return file_path_raster
 
 
 def WriteArrayToDisk(array, data_path_name_str, gt, polygonite=False, fieldo=None, EPSG=3035):

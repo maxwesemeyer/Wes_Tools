@@ -101,8 +101,8 @@ def segment_cnn(string_to_raster, vector_geom, indexo=np.random.randint(0, 10000
     three_d_image, two_d_im_pca, mask_local, gt_gdal = prepare_data(string_to_raster, vector_geom, custom_subsetter, n_band, MMU=MMU, PCA=True)
     data_path = data_path_output
 
-    # labels = KMeans(n_clusters=5).fit_predict(scaled_arg_2d)
-    # labels = segmentation.felzenszwalb(scaled_shaped[:, :, arg_10[:3]], scale=2)  #
+    #labels = KMeans(n_clusters=5).fit_predict(scaled_arg_2d)
+    #labels = segmentation.felzenszwalb(scaled_shaped[:, :, arg_10[:3]], scale=2)  #
     labels = segmentation.slic(three_d_image, n_segments=100, compactness=10)
 
     im = three_d_image

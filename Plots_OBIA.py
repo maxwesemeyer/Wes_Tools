@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import dictances
 import itertools
 import pandas as pd
+import gdal
 
 
 def nan_helper(y):

@@ -1,22 +1,6 @@
 import fiona
 from shapely.geometry import Polygon, shape
-import re
-import os
 import numpy as np
-
-
-def Shape_finder(input_path):
-    data_path_input = input_path
-    file_path_raster = []
-    for root, dirs, files in os.walk(data_path_input, topdown=True):
-        #dirs[:] = [d for d in dirs if d in folders_BRB]
-
-        for file in files:
-            if re.match(".*[s][h][p]{1,2}$", file):
-                file_path_raster.append(str(root + file))
-            else:
-                continue
-    return file_path_raster
 
 
 class Accuracy_Assessment:
@@ -29,6 +13,7 @@ class Accuracy_Assessment:
         :param segmentation_poly: path to input shapefile
         :return: accuracy values Os, Us, Total
         """
+
         with fiona.open(reference_poly) as shapefile:
             shapes_ref = [feature["geometry"] for feature in shapefile]
         with fiona.open(segmentation_poly) as shapefile:

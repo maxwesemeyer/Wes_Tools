@@ -3,7 +3,12 @@ import geopandas as gpd
 import pandas as pd
 from joblib import Parallel, delayed
 import fiona
+import glob
 sys.path.append("C:/Users/BorgoDörp/OneDrive/")
+from sklearn.cluster import AgglomerativeClustering
+
+
+AgglomerativeClustering()
 
 from Wes_Tools.Accuracy_ import *
 from Wes_Tools.Plots_OBIA import *
@@ -13,6 +18,8 @@ from Wes_Tools.__CNN_segment import *
 
 if __name__ == '__main__':
     data_path = 'C:/Users/BorgoDörp/OneDrive/MA_bilder/'
+
+
     raster_path = data_path + '2018-2020_001-365_HL_TSA_SEN2L_NDV_TSS.tif'
     list_of_shapes = Shape_finder('O:/Student_Data/Wesemeyer/Master/results_new/')
     with fiona.open(data_path + 'Neu_test.gpkg') as shapefile:
