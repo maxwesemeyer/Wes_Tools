@@ -87,285 +87,221 @@ def minmax_transfor(X):
             np.nanmax(img1[:, :, bands]) - np.nanmin(img1[:, :, bands]))
     return result
 
+class Segmentation():
+    prepare_data = []
 
-def segment_cnn(raster_l, vector_geom, data_path, custom_subsetter=range(5,65),n_band=11, nConv = 1, lr_var=0.15):
 
-    field_counter = "{}{}{}{}{}".format(str(n_band), '_', str(nConv), '_', str(lr_var))
-    aggregated_results = pd.DataFrame()
-    i = 1
+def segment_cnn(raster_l, vector_geom, data_path, indexo=np.random.randint(0, 100000), custom_subsetter=range(5,65),n_band=11, nConv = 1, lr_var=0.15):
+    """
+        :param string_to_raster: path to raster file
+        :param vector_mask: list of fiona geometries
+        :param n_band: How many PCs will be used
+        :param into_pca: How many bands schould be used for the PCA; By default all
+        :param custom_subsetter: In case not to use all the input bands
+        :param data_path_output: Where to save the results?
+        :param MMU: Minumum Mapping Unit in km²; below that input will be set as one segment
+        :return: saves segmented image to disk using the Bayseg
+         # the default should be string_to_raster = tss
+        # raster_tsi = string_to_raster.replace('TSS', 'TSI')
+        range(0, 35 * 14) for coreg stack
+        """
+    field_counter = "{}{}{}{}{}{}{}".format(str(n_band), '_', str(nConv), '_', str(lr_var), '_', str(indexo))
+    shp = [vector_geom.geometry]
     subsetter_tss = custom_subsetter
     subsetter_tsi = custom_subsetter
+    with rasterio.open(raster_l) as src:
+        out_image, out_transform = rasterio.mask.mask(src, shp, crop=True)
 
-    for shp in vector_geom:
-        with rasterio.open(raster_l) as src:
-            out_image, out_transform = rasterio.mask.mask(src, [shp], crop=True)
+        create_mask = True
+        if create_mask:
+            mask = create_mask_from_ndim(out_image)
 
-            create_mask = True
-            if create_mask:
-                mask = create_mask_from_ndim(out_image)
+    with rasterio.open(raster_l) as src:
+        out_image_agg, out_mask_agg = rasterio.mask.mask(src, shp, crop=True)
+        out_image_agg = out_image_agg.copy() / 10000
+        out_image_agg = out_image_agg[subsetter_tsi, :, :]
+        shape_out_tsi = out_image_agg.shape
 
-        with rasterio.open(raster_l) as src:
-            out_image_agg, out_mask_agg = rasterio.mask.mask(src, [shp], crop=True)
-            out_image_agg = out_image_agg.copy() / 10000
-            out_image_agg = out_image_agg[subsetter_tsi, :, :]
-            shape_out_tsi = out_image_agg.shape
+        gt_gdal = Affine.to_gdal(out_transform)
+        #################################
 
-            gt_gdal = Affine.to_gdal(out_transform)
-            #################################
+        out_meta = src.meta
 
-            out_meta = src.meta
+        out_image = out_image.copy() / 10000
+        out_image = out_image[subsetter_tsi, :, :]
+        shape_out = out_image.shape
+        max_valid_pixel = (sum(np.reshape(mask[:, :], (shape_out[1] * shape_out[2])) > 0))
+        print('Parcel Area:', max_valid_pixel * 100 / 1000000, ' km²')
+        if max_valid_pixel * 100 / 1000000 < 0.05:
+            print('pass')
+            pass
+        else:
+            w = np.where(out_image < 0)
 
-            out_image = out_image.copy() / 10000
-            out_image = out_image[subsetter_tsi, :,:]
-            shape_out = out_image.shape
-            max_valid_pixel = (sum(np.reshape(mask[:, :], (shape_out[1] * shape_out[2])) > 0))
-            print('Parcel Area:', max_valid_pixel * 100 / 1000000, ' km²')
-            if max_valid_pixel * 100 / 1000000 < 0.05:
-                print('pass')
-                pass
-            else:
-                w = np.where(out_image < 0)
+            out_sub = mask[:, :]
+            mask_local = np.where(out_sub <= 0)
+            out_image[w] = 0
+            out_image_nan = out_image.copy().astype(dtype=np.float)
+            out_image_nan[w] = np.nan
+            std_glob = np.nanstd(out_image_nan, axis=(1, 2))
+            print('global:', sum(std_glob))
 
-                out_sub = mask[:, :]
-                mask_local = np.where(out_sub <= 0)
-                out_image[w] = 0
-                out_image_nan = out_image.copy().astype(dtype=np.float)
-                out_image_nan[w] = np.nan
-                std_glob = np.nanstd(out_image_nan, axis=(1, 2))
-                print('global:', sum(std_glob))
-
-                x, y, z = out_image.shape
-                image_2d = np.reshape(out_image, (x, y * z))
-                image_2d = np.moveaxis(image_2d.copy(), 0, 1)
-
-                # load image
-
-                three_band_img = out_image_nan
-
-                three_band_img = np.moveaxis(three_band_img, 0, 2)
-
-                img1 = three_band_img
-                print(img1.shape)
-
-                re = np.reshape(img1, (img1.shape[0] * img1.shape[1], img1.shape[2]))
-                # re_scale = RobustScaler(quantile_range=(0.8, 1)).fit_transform(re)
-                scaled = (MinMaxScaler(feature_range=(0, 255)).fit_transform(re))
-                scaled_shaped = np.reshape(scaled, (img1.shape))
-                #scaled_shaped = np.square(img1+10)
-                wh_nan = np.where(np.isnan(scaled_shaped))
-                scaled_shaped[wh_nan] = 0
-
-                # file_str = "{}{}{}".format(data_path + "out_img", str(i), ".png")
-                # print(file_str)
-                # cv2.imwrite(file_str, scaled_shaped[:,:,1])
+            three_band_img = out_image_nan
+            img1 = np.moveaxis(three_band_img, 0, 2)
 
 
-                # slic # args.compactness
-                # argmax bands as input for superpixel segmentation
-                arg = (-np.nanstd(out_image_nan, axis=(1, 2))).argsort()[:3]
-                arg_50 = (-np.nanstd(out_image_nan, axis=(1, 2))).argsort()[:500]
-                arg_10 = []
-                for args in arg_50:
-                    valid_pixel = (sum(np.reshape(out_image[args, :,:], (shape_out[1]*shape_out[2]))>0))
-                    #if np.any(out_image_nan[args, :,:] == 0):
-                        #print('scheisse', args)
-                    if valid_pixel < max_valid_pixel:
-                        print('only:', valid_pixel, 'of:', max_valid_pixel)
-                    elif len(arg_10) == 500:
-                        break
-                    else:
-                        arg_10.append(int(args))
-
-                        #file_str = "{}{}{}{}".format(data_path + "/output/out_field", str(args), "_", str(shp_counter))
-                        #out_img = (out_image[args,:,:])*255
-                        #cv2.imwrite(file_str + '.png', out_img)
-
-                    # count maximum valid pixels
-                    # if smaller than maximum valid pixels reject
-
-                print(arg_10)
-                #print(arg_10[:3])
-
-                #labels = segmentation.felzenszwalb(scaled_shaped[:,:,arg_10[:3]], scale=10)
-                #labels = segmentation.slic(scaled_shaped[:,:,arg], n_segments=6, compactness=6)
-                #labels = segmentation.slic(scaled_shaped[:, :, arg], n_segments=90, compactness=15)
 
 
-                im = scaled_shaped[:, :, arg_10]
-                im[im==0] = np.nan
+            re = np.reshape(img1, (img1.shape[0] * img1.shape[1], img1.shape[2]))
+            # re_scale = RobustScaler(quantile_range=(0.8, 1)).fit_transform(re)
+            scaled = (MinMaxScaler(feature_range=(0, 255)).fit_transform(re))
+            scaled_shaped = np.reshape(scaled, (img1.shape))
+            # scaled_shaped = np.square(img1+10)
+            wh_nan = np.where(np.isnan(scaled_shaped))
+            scaled_shaped[wh_nan] = 0
+
+            ###########
+            # selects bands which have only valid pixels
+            arg_10 = select_bands_sd(out_image_nan, max_valid_pixels_=max_valid_pixel)
+            print(arg_10)
+
+            # labels = segmentation.felzenszwalb(scaled_shaped[:,:,arg_10[:3]], scale=10)
+            # labels = segmentation.slic(scaled_shaped[:,:,arg], n_segments=6, compactness=6)
+            # labels = segmentation.slic(scaled_shaped[:, :, arg], n_segments=90, compactness=15)
+
+            im = scaled_shaped[:, :, arg_10]
+            im[im == 0] = np.nan
+
+            scaled_arg_2d = np.reshape(im, (im.shape[0] * im.shape[1], len(arg_10)))
+            # plt.hist(scaled_arg_2d[:,0], bins = 50)
+            # plt.show()
+
+            im[np.isnan(im)] = 0
+            adjust = 0
+
+            n_comp = 4 - adjust
+
+            scaled_arg_2d[np.isnan(scaled_arg_2d)] = 0
+            print(scaled_arg_2d)
+            #################
+            # PCA
+            n_comps = n_band
+            pca = decomposition.PCA(n_components=n_comps)
+            im_pca = pca.fit_transform(scaled_arg_2d)
+            print(pca.explained_variance_ratio_)
+            image_pca = np.reshape(im_pca, (im.shape[0], im.shape[1], n_comps))
+            im_pca[im_pca == 0] = np.nan
+            print('IMAGE PCA', image_pca.shape)
+
+            # labels = KMeans(n_clusters=5).fit_predict(scaled_arg_2d)
+            # labels = segmentation.felzenszwalb(scaled_shaped[:, :, arg_10[:3]], scale=2)  #
+            labels = segmentation.slic(image_pca, n_segments=100, compactness=10)
+
+            im = image_pca
+            file_str = "{}{}{}".format(data_path + "/output/out_labels", str(field_counter), "_")
+
+            labels_img = np.reshape(labels, (image_pca.shape[0], image_pca.shape[1]))
+            # labels__img = np.reshape(labels_, (scaled_shaped.shape[0], scaled_shaped.shape[1]))
+            labels_img += 1
+            labels_img[mask_local] = 0
+            labels = labels_img.reshape(im.shape[0] * im.shape[1])
+            print(im.shape, labels.shape)
+            plt.imshow(labels_img)
+            plt.show()
+
+            # WriteArrayToDisk(labels_img, file_str, gt_gdal, polygonite=True)
+            ################################ cnn stuff
+            data = torch.from_numpy(np.array([im.transpose((2, 0, 1)).astype('float32') / 255.]))
+
+            visualize = True
+            data = Variable(data)
+            u_labels = np.unique(labels)
+
+            l_inds = []
+            for i in range(len(u_labels)):
+                l_inds.append(np.where(labels == u_labels[i])[0])
+
+            # train
+            model = MyNet(data.size(1))
+
+            #if os.path.exists(data_path + 'cnn_model'):
+            #model = torch.load(data_path + 'cnn_model')
+            model.train()
+            loss_fn = torch.nn.CrossEntropyLoss()
+            optimizer = optim.SGD(model.parameters(), lr=lr_var, momentum=0.8)
+            label_colours = np.random.randint(255, size=(100, n_band))
+            # to create a gif
+            images = []
+            for batch_idx in range(500):
+                # forwarding
+                optimizer.zero_grad()
+                output = model(data)[0]
+                output = output.permute(1, 2, 0).contiguous().view(-1, n_band)
+                ignore, target = torch.max(output, 1)
+                im_target = target.data.cpu().numpy()
+                nLabels = len(np.unique(im_target))
+
+                if visualize:
+                    im_target_rgb = np.array([label_colours[c % 100] for c in im_target])
+
+                    im_target_rgb = im_target_rgb.reshape(im.shape).astype(np.uint8)
+                    shp_1 = (np.sqrt(im_target_rgb.shape[0])).astype(np.int)
+
+                    # im_target_rgb = im_target_rgb.reshape((shp_1, shp_1, 10)).astype(np.uint8)
+
+                    images.append((im_target_rgb[:, :, 0]))
+
+                    # cv2.imshow("output", im_target_rgb[:, :, [0, 1, 2]])
+                    # cv2.waitKey(n_band)
+
+                # superpixel refinement
+                # TODO: use Torch Variable instead of numpy for faster calculation
+                for i in range(len(l_inds)):
+                    labels_per_sp = im_target[l_inds[i]]
+                    u_labels_per_sp = np.unique(labels_per_sp)
+                    hist = np.zeros(len(u_labels_per_sp))
+                    for j in range(len(hist)):
+                        hist[j] = len(np.where(labels_per_sp == u_labels_per_sp[j])[0])
+                    im_target[l_inds[i]] = u_labels_per_sp[np.argmax(hist)]
+                target = torch.from_numpy(im_target)
+
+                target = Variable(target)
+                loss = loss_fn(output, target)
+                loss.backward()
+                optimizer.step()
+
+                # print (batch_idx, '/', args.maxIter, ':', nLabels, loss.data[0])
+                print(batch_idx, '/', 500, ':', nLabels, loss.item())
+
+                if nLabels < 2:
+                    print("nLabels", nLabels, "reached minLabels", 2, ".")
+                    break
+            #torch.save(model, data_path + 'cnn_model')
+            # save output image
+            if not visualize:
+                output = model(data)[0]
+                output = output.permute(1, 2, 0).contiguous().view(-1, n_band)
+                ignore, target = torch.max(output, 1)
+                im_target = target.data.cpu().numpy()
+                im_target_rgb = np.array([label_colours[c % 100] for c in im_target])
+                im_target_rgb = im_target_rgb.reshape(im.shape).astype(np.uint8)
+            imageio.mimsave(data_path + 'cnn.gif', images)
+            print(im_target_rgb.shape)
+
+            flat_array = im_target_rgb[:, :, 0].squeeze()
+            flat_array += 1
+            flat_array[mask_local] = 0
+            print(type(flat_array))
+
+            plt.figure(figsize=(15, 8))
+            plt.imshow(flat_array)
+            # plt.show()
+
+            file_str = "{}{}{}".format(data_path + "/output/out", str(field_counter), "_")
+            WriteArrayToDisk(flat_array, file_str, gt_gdal, polygonite=True, fieldo=field_counter)
 
 
-                scaled_arg_2d = np.reshape(im, (im.shape[0] * im.shape[1], len(arg_10)))
-                #plt.hist(scaled_arg_2d[:,0], bins = 50)
-                #plt.show()
 
-                im[np.isnan(im)] = 0
-                adjust = 0
-
-                n_comp = 4 - adjust
-
-                scaled_arg_2d[np.isnan(scaled_arg_2d)] = 0
-                print(scaled_arg_2d)
-                #################
-                # PCA
-                n_comps = n_band
-                pca = decomposition.PCA(n_components=n_comps)
-                im_pca = pca.fit_transform(scaled_arg_2d)
-                print(pca.explained_variance_ratio_)
-                image_pca = np.reshape(im_pca, (im.shape[0], im.shape[1], n_comps))
-                im_pca[im_pca == 0] = np.nan
-                print('IMAGE PCA', image_pca.shape)
-
-                #labels = KMeans(n_clusters=5).fit_predict(scaled_arg_2d)
-                #labels = segmentation.felzenszwalb(scaled_shaped[:, :, arg_10[:3]], scale=2)  #
-                labels = segmentation.slic(image_pca, n_segments=100, compactness=10)
-
-                im = image_pca
-                file_str = "{}{}{}".format(data_path + "/output/out_labels", str(field_counter), "_")
-
-                labels_img = np.reshape(labels, (image_pca.shape[0], image_pca.shape[1]))
-                # labels__img = np.reshape(labels_, (scaled_shaped.shape[0], scaled_shaped.shape[1]))
-                labels_img += 1
-                labels_img[mask_local] = 0
-                labels = labels_img.reshape(im.shape[0] * im.shape[1])
-                print(im.shape, labels.shape)
-                plt.imshow(labels_img)
-                plt.show()
-
-                #WriteArrayToDisk(labels_img, file_str, gt_gdal, polygonite=True)
-                ################################ cnn stuff
-                cnn = True
-                if cnn:
-                    data = torch.from_numpy(np.array([im.transpose((2, 0, 1)).astype('float32') / 255.]))
-
-
-                    visualize = True
-                    data = Variable(data)
-                    u_labels = np.unique(labels)
-
-                    l_inds = []
-                    for i in range(len(u_labels)):
-                        l_inds.append(np.where(labels == u_labels[i])[0])
-
-                    # train
-                    model = MyNet(data.size(1))
-
-                    #if os.path.exists(data_path + 'cnn_model'):
-                        #model = torch.load(data_path + 'cnn_model')
-                    model.train()
-                    loss_fn = torch.nn.CrossEntropyLoss()
-                    optimizer = optim.SGD(model.parameters(), lr=lr_var, momentum=0.8)
-                    label_colours = np.random.randint(255, size=(100, n_band))
-                    # to create a gif
-                    images = []
-                    for batch_idx in range(500):
-                        # forwarding
-                        optimizer.zero_grad()
-                        output = model(data)[0]
-                        output = output.permute(1, 2, 0).contiguous().view(-1, n_band)
-                        ignore, target = torch.max(output, 1)
-                        im_target = target.data.cpu().numpy()
-                        nLabels = len(np.unique(im_target))
-
-                        if visualize:
-                            im_target_rgb = np.array([label_colours[c % 100] for c in im_target])
-
-                            im_target_rgb = im_target_rgb.reshape(im.shape).astype(np.uint8)
-                            shp_1 = (np.sqrt(im_target_rgb.shape[0])).astype(np.int)
-
-                            #im_target_rgb = im_target_rgb.reshape((shp_1, shp_1, 10)).astype(np.uint8)
-
-                            images.append((im_target_rgb[:, :, 0]))
-
-
-                            #cv2.imshow("output", im_target_rgb[:, :, [0, 1, 2]])
-                            #cv2.waitKey(n_band)
-
-                        # superpixel refinement
-                        # TODO: use Torch Variable instead of numpy for faster calculation
-                        for i in range(len(l_inds)):
-                            labels_per_sp = im_target[l_inds[i]]
-                            u_labels_per_sp = np.unique(labels_per_sp)
-                            hist = np.zeros(len(u_labels_per_sp))
-                            for j in range(len(hist)):
-                                hist[j] = len(np.where(labels_per_sp == u_labels_per_sp[j])[0])
-                            im_target[l_inds[i]] = u_labels_per_sp[np.argmax(hist)]
-                        target = torch.from_numpy(im_target)
-
-                        target = Variable(target)
-                        loss = loss_fn(output, target)
-                        print(output)
-                        loss.backward()
-                        optimizer.step()
-
-                        # print (batch_idx, '/', args.maxIter, ':', nLabels, loss.data[0])
-                        print(batch_idx, '/', 500, ':', nLabels, loss.item())
-
-                        if nLabels < 2:
-                            print("nLabels", nLabels, "reached minLabels", 2, ".")
-                            break
-                    torch.save(model, data_path + 'cnn_model')
-                    # save output image
-                    if not visualize:
-                        output = model(data)[0]
-                        output = output.permute(1, 2, 0).contiguous().view(-1, n_band)
-                        ignore, target = torch.max(output, 1)
-                        im_target = target.data.cpu().numpy()
-                        im_target_rgb = np.array([label_colours[c % 100] for c in im_target])
-                        im_target_rgb = im_target_rgb.reshape(im.shape).astype(np.uint8)
-                    imageio.mimsave(data_path + 'cnn.gif', images)
-                    print(im_target_rgb.shape)
-
-                    flat_array = im_target_rgb[:, :, 0].squeeze()
-                    flat_array += 1
-                    flat_array[mask_local] = 0
-                    print(type(flat_array))
-
-                    plt.figure(figsize=(15, 8))
-                    plt.imshow(flat_array)
-                    #plt.show()
-
-                    file_str = "{}{}{}".format(data_path + "/output/out", str(field_counter), "_")
-                    WriteArrayToDisk(flat_array, file_str, gt_gdal, polygonite=True, fieldo=field_counter)
-
-                    # cv2.imwrite(data_path + "/output.png", im_target_rgb)
-                    #################################
-                    # write raster file
-                    # 0 to nan
-
-                    ############################################################
-                    # aggregation for the parcels found
-                    aggregate = True
-                    labels_img = flat_array
-                    if aggregate:
-                        for classes in np.unique(labels_img):
-                            if classes == 0:
-                                continue
-                            mask = np.array([labels_img == classes])
-
-                            mask_re = np.repeat(mask, shape_out_tsi[0], axis=0)
-                            extract = out_image_agg * mask_re
-                            extract = extract.astype(dtype=np.float)
-                            extract[extract == 0] = np.nan
-                            # different metrics
-                            std = np.nanstd(extract, axis=(1, 2))
-                            # print(field_counter, ':', sum(std))
-                            row_mean = (np.nanmean(extract, axis=(1, 2)))
-                            # row_median = (np.nanmedian(extract, axis=(1, 2)))
-                            # row_percentile = (np.nanpercentile(extract, (10, 30, 70, 90), axis=(1, 2)))
-                            # row_min = (np.nanmin(extract, axis=(1, 2)))
-                            # row_max = (np.nanmax(extract, axis=(1, 2)))
-
-                            ident = pd.Series(field_counter, name='field')
-                            cluster = pd.Series(classes, name='cluster')
-                            # ab = itertools.chain(row_mean, row_median, row_min, row_max, ident, cluster)
-                            ab = itertools.chain(row_mean, ident, cluster)
-                            Series = pd.Series(list(ab), name=i)
-                            i += 1
-                            aggregated_results = aggregated_results.append(Series, ignore_index=True)
-                            print(aggregated_results)
-                    #field_counter += 1
-    aggregated_results.to_csv(data_path + '/cnn_results.csv')
 """
 # global variables
 ########################################################################################################################

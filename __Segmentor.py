@@ -105,7 +105,8 @@ def scfilter(image, iterations, kernel):
     return image
 
 
-def segment_2(string_to_raster, vector_mask, data_path_output=None, beta_coef=1, beta_jump=0.1, n_band=50, into_pca=50,
+def segment_2(string_to_raster, vector_geom, indexo=np.random.randint(0, 100000),
+              data_path_output=None, beta_coef=1, beta_jump=0.1, n_band=50, into_pca=50,
               custom_subsetter=range(0,80),  MMU=0.05):
     """
     :param string_to_raster: path to raster file
@@ -129,19 +130,17 @@ def segment_2(string_to_raster, vector_mask, data_path_output=None, beta_coef=1,
     else:
         os.mkdir(data_path_output + 'output')
     data_patho = data_path_output + 'output'
-    #data_patho = 'O:/Student_Data/Wesemeyer/Master/results_new'
-    field_counter = "{}{}{}{}{}{}".format(str(into_pca), "_", str(beta_jump), "_", str(n_band), str(np.random.randint(0, 100000)))
-    # field_counter = 'stack'
+    field_counter = "{}{}{}{}{}{}".format(str(into_pca), "_", str(beta_jump), "_", str(n_band), str(indexo))
+
+    shp = [vector_geom.geometry]
     print(field_counter)
     subsetter_tss = custom_subsetter
     subsetter_tsi = custom_subsetter
 
     with rasterio.open(string_to_raster) as src:
-        out_image, out_transform = rasterio.mask.mask(src, vector_mask, crop=True)
-        # with rasterio.open(data_path + 'mask_BB_3035_clip.tif') as src:
-        # mask, out_transform_mask = rasterio.mask.mask(src, [shp], crop=True)
+        out_image, out_transform = rasterio.mask.mask(src, shp, crop=True)
     with rasterio.open(string_to_raster) as src:
-        out_image_agg, out_mask_agg = rasterio.mask.mask(src, vector_mask, crop=True)
+        out_image_agg, out_mask_agg = rasterio.mask.mask(src, shp, crop=True)
         create_mask = True
         if create_mask:
             mask = create_mask_from_ndim(out_image_agg)
@@ -176,21 +175,7 @@ def segment_2(string_to_raster, vector_mask, data_path_output=None, beta_coef=1,
             wh_nan = np.where(np.isnan(scaled_shaped))
             scaled_shaped[wh_nan] = 0
 
-            # slic # args.compactness
-            # argmax bands as input for superpixel segmentation
-            # -np.nanstd
-            arg = (-np.nanstd(out_image_nan, axis=(1, 2))).argsort()[:3]
-            arg_50 = (-np.nanstd(out_image_nan, axis=(1, 2))).argsort()[0:490]
-            arg_10 = []
-            for args in arg_50:
-                valid_pixel = (sum(np.reshape(out_image[args, :, :], (shape_out[1] * shape_out[2])) > 0))
-                if valid_pixel < max_valid_pixel:
-                    print('only:', valid_pixel, 'of:', max_valid_pixel)
-                elif len(arg_10) == into_pca:
-                    break
-                else:
-                    arg_10.append(int(args))
-
+            arg_10 = select_bands_sd(out_image_nan, max_valid_pixels_=max_valid_pixel)
             print(arg_10)
             ############################################################
             # use tsi instead of tss if too few observations
