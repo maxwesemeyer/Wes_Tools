@@ -132,194 +132,55 @@ def segment_2(string_to_raster, vector_geom, indexo=np.random.randint(0, 100000)
     data_patho = data_path_output + 'output'
     field_counter = "{}{}{}{}{}{}".format(str(into_pca), "_", str(beta_jump), "_", str(n_band), str(indexo))
 
-    shp = [vector_geom.geometry]
-    print(field_counter)
-    subsetter_tss = custom_subsetter
-    subsetter_tsi = custom_subsetter
+    three_d_image, two_d_im_pca, mask_local, gt_gdal = prepare_data(string_to_raster, vector_geom, custom_subsetter, n_band, MMU=MMU, PCA=True)
+    ############################################################
+    n_class = 10
+    # old 4, 3, 4, 6 for MA now 10
+    mino = bayseg.bic(two_d_im_pca, n_class)
+    # mino = 4
+    itero = 50
+    # print(mino)
+    clf = bayseg.BaySeg(three_d_image, mino, beta_init=beta_coef)
+    clf.fit(itero, beta_jump_length=beta_jump)
 
-    with rasterio.open(string_to_raster) as src:
-        out_image, out_transform = rasterio.mask.mask(src, shp, crop=True)
-    with rasterio.open(string_to_raster) as src:
-        out_image_agg, out_mask_agg = rasterio.mask.mask(src, shp, crop=True)
-        create_mask = True
-        if create_mask:
-            mask = create_mask_from_ndim(out_image_agg)
+    # shape: n_iter, flat image, n_classes
+    # print('PROBSHAPE: ', prob.shape)
+    file_str = "{}{}{}".format(data_patho + "/diagnostics", "_stack_", str(field_counter))
+    print(file_str)
+    ie = clf.diagnostics_plot(transpose=True, save=True, path_to_save=file_str + '.png', ie_return=True)
 
-        gt_gdal = Affine.to_gdal(out_transform)
-        #################################
+    labels = clf.labels[-1, :]
 
-        out_image = out_image[subsetter_tss, :, :]
-        shape_out = out_image.shape
-        max_valid_pixel = np.sum(mask)
-        print('Parcel Area:', max_valid_pixel * 100 / 1000000, ' km²')
-        if max_valid_pixel * 100 / 1000000 < MMU:
-            print('grassland area too small')
-            return None
-        else:
-            w = np.where(out_image < 0)
+    """
+    images_iters = []
 
-            out_sub = mask[:, :]
-            mask_local = np.where(out_sub <= 0)
-            out_image[w] = 0
-            out_image_nan = out_image.copy().astype(dtype=np.float)
-            out_image_nan[w] = np.nan
-            three_band_img = out_image_nan
-            three_band_img = np.moveaxis(three_band_img, 0, 2)
-            img1 = three_band_img
-            print(img1.shape)
-            re = np.reshape(img1, (img1.shape[0] * img1.shape[1], img1.shape[2]))
-            # scaled_ = RobustScaler(quantile_range=(0.1, 0.9)).fit_transform(re)
-            scaled = (MinMaxScaler(feature_range=(0, 10000)).fit_transform(re))
-            scaled_shaped = np.reshape(scaled, img1.shape)
-            # scaled_shaped = np.square(img1 + 10)
-            wh_nan = np.where(np.isnan(scaled_shaped))
-            scaled_shaped[wh_nan] = 0
+    for iters in range(itero):
+        lo = clf.labels[iters, :]
+        lo_img = np.reshape(lo, (scaled_shaped.shape[0], scaled_shaped.shape[1]))
+        images_iters.append(lo_img)
+        # plt.imshow(lo_img)
+        # plt.show()
+    """
+    # imageio.mimsave(data_path + 'bayseg.gif', images_iters)
+    file_str = "{}{}{}".format(data_patho + "/out_labels_pca", str(field_counter), "_")
+    file_str_maj = "{}{}{}".format(data_patho + "/out_labels_majority", str(field_counter), "_")
+    file_str_ie = "{}{}{}".format(data_patho + "/out_labels_ie_pca", str(field_counter), "_")
+    # to save as integer
+    labels_img = np.reshape(labels, (three_d_image.shape[0], three_d_image.shape[1]))
+    ie_img = np.reshape(ie, (three_d_image.shape[0], three_d_image.shape[1])) * 10000
+    # prob_img = np.reshape(prob[-1, :, 3], labels_img.shape)
 
-            arg_10 = select_bands_sd(out_image_nan, max_valid_pixels_=max_valid_pixel)
-            print(arg_10)
-            ############################################################
-            # use tsi instead of tss if too few observations
-            #
-            if len(arg_10) <= 4:
-                field_counter = raster_tsi[41:-4]
-                print('TOO FEW OBSERVATIONS USING TSI', field_counter)
-                out_image = out_image_agg.copy()
-                out_image = out_image[subsetter_tsi, :, :]
-                shape_out = out_image.shape
-                max_valid_pixel = (sum(np.reshape(mask[:, :], (shape_out[1] * shape_out[2])) > 0))
-                print('Parcel Area:', max_valid_pixel * 100 / 1000000, ' km²')
-                if max_valid_pixel * 100 / 1000000 < 0.05:
-                    print('grassland area too small')
-                    return None
-                else:
-                    w = np.where(out_image < 0)
-
-                    out_sub = mask[:, :]
-                    mask_local = np.where(out_sub <= 0)
-                    out_image[w] = 0
-                    out_image_nan = out_image.copy().astype(dtype=np.float)
-                    out_image_nan[w] = np.nan
-                    three_band_img = out_image_nan
-                    three_band_img = np.moveaxis(three_band_img, 0, 2)
-                    img1 = three_band_img
-                    print(img1.shape)
-                    re = np.reshape(img1, (img1.shape[0] * img1.shape[1], img1.shape[2]))
-                    # scaled_ = RobustScaler(quantile_range=(0.1, 0.9)).fit_transform(re)
-                    scaled = (MinMaxScaler(feature_range=(0, 10000)).fit_transform(re))
-                    scaled_shaped = np.reshape(scaled, img1.shape)
-                    # scaled_shaped = np.square(img1 + 10)
-                    wh_nan = np.where(np.isnan(scaled_shaped))
-                    scaled_shaped[wh_nan] = 0
-
-                    # slic # args.compactness
-                    # argmax bands as input for superpixel segmentation
-                    # -np.nanstd
-                    arg = (-np.nanstd(out_image_nan, axis=(1, 2))).argsort()[:3]
-                    arg_50 = (-np.nanstd(out_image_nan, axis=(1, 2))).argsort()[:800]
-                    arg_10 = []
-                    for args in arg_50:
-                        valid_pixel = (sum(np.reshape(out_image[args, :, :], (shape_out[1] * shape_out[2])) > 0))
-                        if valid_pixel < max_valid_pixel:
-                            print('only:', valid_pixel, 'of:', max_valid_pixel)
-                        elif len(arg_10) == into_pca:
-                            break
-                        else:
-                            arg_10.append(int(args))
-
-                    print(arg_10)
-                    # im = clahe_nchannels(scaled_shaped[:, :, arg_10].astype(dtype=np.uint16))
-                    im = clahe_nchannels(scaled_shaped[:, :, arg_10].astype(dtype=np.uint16))
-            else:
-                im = scaled_shaped[:, :, arg_10]
-
-            ############################################################
-            # clahe
-            # im = clahe_nchannels(scaled_shaped[:, :, arg_10].astype(dtype=np.uint16))
-            # im = cv2.medianBlur(im, 5)
-
-            im[im == 0] = np.nan
-
-            scaled_arg_2d = np.reshape(im, (im.shape[0] * im.shape[1], len(arg_10)))
-
-            scaled_arg_2d[np.isnan(scaled_arg_2d)] = 0
-            print(scaled_arg_2d)
-            #################
-            # PCA
-            n_comps = n_band
-            pca = decomposition.PCA(n_components=n_comps)
-            im_pca = pca.fit_transform(scaled_arg_2d)
-            print(pca.explained_variance_ratio_)
-            print(im_pca.shape)
-            #im_pca = im_pca.copy()[:, n_comps]
-            image_pca = np.reshape(im_pca, (im.shape[0], im.shape[1], n_comps))
-            im_pca[im_pca == 0] = np.nan
-            print('IMAGE PCA', image_pca.shape)
-            plt.imshow(image_pca)
-            plt.show()
-            # plt.hist(scaled_arg_2d[:, 0], bins=50)
-            # plt.show()
-
-            im[np.isnan(im)] = 0
-            # plt.imshow(im[:, :, [0, 1, 2]])
-            # plt.show()
-            # labels = GaussianMixture(n_components=5).fit_predict(scaled_arg_2d)
-
-            ############################################################
-            if max_valid_pixel >= 30000 & max_valid_pixel < 70000:
-                n_class = 10
-            elif max_valid_pixel <= 10000:
-                n_class = 10
-            elif max_valid_pixel > 10000 & max_valid_pixel < 30000:
-                n_class = 10
-            else:
-                n_class = 10
-
-            # old 4, 3, 4, 6 for MA now 10
-            mino = bayseg.bic(im_pca, n_class)
-            # mino = 4
-            itero = 500
-            # print(mino)
-            clf = bayseg.BaySeg(image_pca, mino, beta_init=beta_coef)
-            clf.fit(itero, beta_jump_length=beta_jump)
-
-            # shape: n_iter, flat image, n_classes
-            # print('PROBSHAPE: ', prob.shape)
-            file_str = "{}{}{}".format(data_patho + "/diagnostics", "_stack_", str(field_counter))
-            print(file_str)
-            ie = clf.diagnostics_plot(transpose=True, save=True, path_to_save=file_str + '.png', ie_return=True)
-
-            labels = clf.labels[-1, :]
-
-            """
-            images_iters = []
-
-            for iters in range(itero):
-                lo = clf.labels[iters, :]
-                lo_img = np.reshape(lo, (scaled_shaped.shape[0], scaled_shaped.shape[1]))
-                images_iters.append(lo_img)
-                # plt.imshow(lo_img)
-                # plt.show()
-            """
-            # imageio.mimsave(data_path + 'bayseg.gif', images_iters)
-            file_str = "{}{}{}".format(data_patho + "/out_labels_pca", str(field_counter), "_")
-            file_str_maj = "{}{}{}".format(data_patho + "/out_labels_majority", str(field_counter), "_")
-            file_str_ie = "{}{}{}".format(data_patho + "/out_labels_ie_pca", str(field_counter), "_")
-            # to save as integer
-            labels_img = np.reshape(labels, (scaled_shaped.shape[0], scaled_shaped.shape[1]))
-            ie_img = np.reshape(ie, (scaled_shaped.shape[0], scaled_shaped.shape[1])) * 10000
-            # prob_img = np.reshape(prob[-1, :, 3], labels_img.shape)
-
-            # labels__img = np.reshape(labels_, (scaled_shaped.shape[0], scaled_shaped.shape[1]))
-            labels_img += 1
-            labels_img[mask_local] = 0
-            labels = labels_img.reshape(im.shape[0] * im.shape[1])
-            print(im.shape, labels.shape)
-            # labels_img = function(labels_img)
-            # plt.imshow(labels_img)
-            # plt.show()
-            WriteArrayToDisk(labels_img, file_str, gt_gdal, polygonite=True, fieldo=field_counter)
-            #
-            # WriteArrayToDisk(labels_img, file_str_maj, gt_gdal, polygonite=True, fieldo=field_counter)
-            WriteArrayToDisk(ie_img, file_str_ie, gt_gdal, polygonite=False, fieldo=field_counter)
+    # labels__img = np.reshape(labels_, (scaled_shaped.shape[0], scaled_shaped.shape[1]))
+    labels_img += 1
+    labels_img[mask_local] = 0
+    labels = labels_img.reshape(three_d_image.shape[0] * three_d_image.shape[1])
+    print(three_d_image.shape, labels.shape)
+    # labels_img = function(labels_img)
+    # plt.imshow(labels_img)
+    # plt.show()
+    WriteArrayToDisk(labels_img, file_str, gt_gdal, polygonite=True, fieldo=field_counter)
+    #
+    # WriteArrayToDisk(labels_img, file_str_maj, gt_gdal, polygonite=True, fieldo=field_counter)
+    WriteArrayToDisk(ie_img, file_str_ie, gt_gdal, polygonite=False, fieldo=field_counter)
 
 

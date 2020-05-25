@@ -3,6 +3,10 @@ import gdal
 import ogr
 import os
 import numpy as np
+import rasterio
+from affine import Affine
+from sklearn.preprocessing import MinMaxScaler
+from sklearn import decomposition
 
 
 def WriteArrayToDisk(array, data_path_name_str, gt, polygonite=False, fieldo=None, EPSG=3035):
@@ -107,3 +111,89 @@ def image_2_2d(image_of_shape):
     image_2d = np.reshape(image_of_shape, (x, y * z))
     image_2d = np.moveaxis(image_2d.copy(), 0, 1)
     return image_2d
+
+
+def prepare_data(raster_l, vector_geom, custom_subsetter=range(5,65), n_band=11, MMU=0.05, PCA=True):
+    shp = [vector_geom.geometry]
+    subsetter_tss = custom_subsetter
+    subsetter_tsi = custom_subsetter
+    with rasterio.open(raster_l) as src:
+        out_image, out_transform = rasterio.mask.mask(src, shp, crop=True)
+
+        create_mask = True
+        if create_mask:
+            mask = create_mask_from_ndim(out_image)
+
+    with rasterio.open(raster_l) as src:
+        out_image_agg, out_mask_agg = rasterio.mask.mask(src, shp, crop=True)
+        out_image_agg = out_image_agg.copy() / 10000
+        out_image_agg = out_image_agg[subsetter_tsi, :, :]
+        shape_out_tsi = out_image_agg.shape
+
+        gt_gdal = Affine.to_gdal(out_transform)
+        #################################
+
+        out_meta = src.meta
+
+        out_image = out_image.copy() / 10000
+        out_image = out_image[subsetter_tsi, :, :]
+        shape_out = out_image.shape
+        max_valid_pixel = (sum(np.reshape(mask[:, :], (shape_out[1] * shape_out[2])) > 0))
+        print('Parcel Area:', max_valid_pixel * 100 / 1000000, ' km²')
+        if max_valid_pixel * 100 / 1000000 < MMU:
+            print('pass')
+            pass
+        else:
+            w = np.where(out_image < 0)
+
+            out_sub = mask[:, :]
+            mask_local = np.where(out_sub <= 0)
+            out_image[w] = 0
+            out_image_nan = out_image.copy().astype(dtype=np.float)
+            out_image_nan[w] = np.nan
+            std_glob = np.nanstd(out_image_nan, axis=(1, 2))
+            print('global:', sum(std_glob))
+
+            three_band_img = out_image_nan
+            img1 = np.moveaxis(three_band_img, 0, 2)
+
+            re = np.reshape(img1, (img1.shape[0] * img1.shape[1], img1.shape[2]))
+            # re_scale = RobustScaler(quantile_range=(0.8, 1)).fit_transform(re)
+            scaled = (MinMaxScaler(feature_range=(0, 255)).fit_transform(re))
+            scaled_shaped = np.reshape(scaled, (img1.shape))
+            # scaled_shaped = np.square(img1+10)
+            wh_nan = np.where(np.isnan(scaled_shaped))
+            scaled_shaped[wh_nan] = 0
+
+            ###########
+            # selects bands which have only valid pixels
+            arg_10 = select_bands_sd(out_image_nan, max_valid_pixels_=max_valid_pixel)
+            print(arg_10)
+
+            # labels = segmentation.felzenszwalb(scaled_shaped[:,:,arg_10[:3]], scale=10)
+            # labels = segmentation.slic(scaled_shaped[:,:,arg], n_segments=6, compactness=6)
+            # labels = segmentation.slic(scaled_shaped[:, :, arg], n_segments=90, compactness=15)
+
+            im = scaled_shaped[:, :, arg_10]
+            im[im == 0] = np.nan
+
+            scaled_arg_2d = np.reshape(im, (im.shape[0] * im.shape[1], len(arg_10)))
+            # plt.hist(scaled_arg_2d[:,0], bins = 50)
+            # plt.show()
+
+            im[np.isnan(im)] = 0
+            scaled_arg_2d[np.isnan(scaled_arg_2d)] = 0
+            print(scaled_arg_2d)
+            if PCA:
+                #################
+                # PCA
+                n_comps = n_band
+                pca = decomposition.PCA(n_components=n_comps)
+                im_pca_2d = pca.fit_transform(scaled_arg_2d)
+                print(pca.explained_variance_ratio_)
+                image_pca = np.reshape(im_pca_2d, (im.shape[0], im.shape[1], n_comps))
+                im_pca_2d[im_pca_2d == 0] = np.nan
+                print('IMAGE PCA', image_pca.shape)
+                return image_pca, im_pca_2d, mask_local, gt_gdal
+            else:
+                return im, scaled_arg_2d, mask_local, gt_gdal

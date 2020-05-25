@@ -7,7 +7,7 @@ import fiona
 sys.path.append("C:/Users/BorgoDörp/OneDrive/")
 from Wes_Tools.Accuracy_ import *
 from Wes_Tools.Plots_OBIA import *
-#from Wes_Tools.__Segmentor import *
+from Wes_Tools.__Segmentor import *
 from Wes_Tools.__CNN_segment import *
 
 if __name__ == '__main__':
@@ -42,5 +42,5 @@ if __name__ == '__main__':
         index, row in gdf.iterrows())
     """
     Parallel(n_jobs=1)(
-        delayed(segment_cnn)(raster_path, vector_geom=row, data_path=data_path, indexo=index, n_band=3) for index, row in gdf.iterrows())
+        delayed(segment_cnn)(raster_path, vector_geom=row, data_path_output=data_path, indexo=index, n_band=3) for index, row in gdf.iterrows())
 
