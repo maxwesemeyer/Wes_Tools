@@ -1,0 +1,10 @@
+setuptools~=46.4.0
+geopandas~=0.6.1
+pandas~=1.0.3
+fiona~=1.8.4
+gdal~=2.3.3
+numpy~=1.18.1
+shapely~=1.6.4
+joblib~=0.15.1
+affine~=2.3.0
+rasterio~=1.0
