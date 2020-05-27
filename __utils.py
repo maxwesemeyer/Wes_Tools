@@ -175,7 +175,7 @@ def prepare_data(raster_l, vector_geom, custom_subsetter=range(5,65), n_band=11,
             print('Parcel Area:', max_valid_pixel * 100 / 1000000, ' km²')
             if max_valid_pixel * 100 / 1000000 < MMU:
                 print('pass, MMU')
-                return #np.array([1,1]), np.array([1,1]), np.array([1,1]), np.array([1,1])
+                return None, None, None, None
             else:
                 w = np.where(out_image < 0)
 

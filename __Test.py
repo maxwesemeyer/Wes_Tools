@@ -39,5 +39,4 @@ if __name__ == '__main__':
         index, row in gdf.iterrows())
     """
     Parallel(n_jobs=1)(delayed(segment_2)(raster_path, vector_geom=row, data_path_output=data_path,
-                                            indexo=index, n_band=3, custom_subsetter=range(5,60)) for index, row in gdf.iterrows())
-
+                                            indexo=index, n_band=3, custom_subsetter=range(5,60), PCA=False) for index, row in gdf.iterrows())
