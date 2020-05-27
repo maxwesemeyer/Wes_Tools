@@ -9,7 +9,7 @@ import torch.nn.init
 import imageio
 
 from .__utils import *
-#import cv2
+import cv2
 ########################################################################################################################
 
 
@@ -93,13 +93,22 @@ class Segmentation():
 def segment_cnn(string_to_raster, vector_geom, indexo=np.random.randint(0, 100000),
               data_path_output=None, n_band=50, into_pca=50, lr_var=0.1,
               custom_subsetter=range(0,80),  MMU=0.05):
+    if os.path.exists(data_path_output + 'output'):
+        print('output directory already exists')
+        # os.rmdir(data_path_output + 'output')
+    else:
+        os.mkdir(data_path_output + 'output')
+    data_path = data_path_output + 'output'
 
     field_counter = "{}{}{}{}{}{}{}".format(str(n_band), '_', str(nConv), '_', str(lr_var), '_', str(indexo))
 
     ###########
     # prepare data function does the magic here
     three_d_image, two_d_im_pca, mask_local, gt_gdal = prepare_data(string_to_raster, vector_geom, custom_subsetter, n_band, MMU=MMU, PCA=True)
-    data_path = data_path_output
+    # in case grassland area is too small
+    if three_d_image is None:
+        return
+    #data_path = data_path_output
 
     #labels = KMeans(n_clusters=5).fit_predict(scaled_arg_2d)
     #labels = segmentation.felzenszwalb(scaled_shaped[:, :, arg_10[:3]], scale=2)  #
@@ -140,7 +149,7 @@ def segment_cnn(string_to_raster, vector_geom, indexo=np.random.randint(0, 10000
     label_colours = np.random.randint(255, size=(100, n_band))
     # to create a gif
     images = []
-    for batch_idx in range(500):
+    for batch_idx in range(100):
         # forwarding
         optimizer.zero_grad()
         output = model(data)[0]
@@ -159,8 +168,8 @@ def segment_cnn(string_to_raster, vector_geom, indexo=np.random.randint(0, 10000
 
             images.append((im_target_rgb[:, :, 0]))
 
-            # cv2.imshow("output", im_target_rgb[:, :, [0, 1, 2]])
-            # cv2.waitKey(n_band)
+            cv2.imshow("output", im_target_rgb[:, :, [0, 1, 2]])
+            cv2.waitKey(n_band)
 
         # superpixel refinement
         # TODO: use Torch Variable instead of numpy for faster calculation
@@ -179,7 +188,7 @@ def segment_cnn(string_to_raster, vector_geom, indexo=np.random.randint(0, 10000
         optimizer.step()
 
         # print (batch_idx, '/', args.maxIter, ':', nLabels, loss.data[0])
-        print(batch_idx, '/', 500, ':', nLabels, loss.item())
+        print(batch_idx, '/', 100, ':', nLabels, loss.item())
 
         if nLabels < 2:
             print("nLabels", nLabels, "reached minLabels", 2, ".")
@@ -205,7 +214,7 @@ def segment_cnn(string_to_raster, vector_geom, indexo=np.random.randint(0, 10000
     plt.imshow(flat_array)
     # plt.show()
 
-    file_str = "{}{}".format(data_path + "/output/CNN_", str(field_counter))
+    file_str = "{}{}".format(data_path + "/CNN_", str(field_counter))
     WriteArrayToDisk(flat_array, file_str, gt_gdal, polygonite=True, fieldo=field_counter)
 
 
