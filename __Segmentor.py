@@ -125,6 +125,8 @@ def segment_2(string_to_raster, vector_geom, indexo=np.random.randint(0, 100000)
     field_counter = "{}{}{}{}{}{}".format(str(into_pca), "_", str(beta_jump), "_", str(n_band), str(indexo))
 
     three_d_image, two_d_im_pca, mask_local, gt_gdal = prepare_data(string_to_raster, vector_geom, custom_subsetter, n_band, MMU=MMU, PCA=True)
+    if three_d_image is None:
+        return
     ############################################################
     n_class = 10
     # old 4, 3, 4, 6 for MA now 10

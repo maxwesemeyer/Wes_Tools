@@ -14,7 +14,7 @@ from Wes_Tools.__CNN_segment import *
 if __name__ == '__main__':
     data_path = 'X:/temp/temp_Max/Data/'
     data_patg_alt = 'X:/SattGruen/Analyse/GLSEG/Raster'
-    raster_path = 'X:/SattGruen/Analyse/GLSEG/Raster/X0068_Y0042/2018-2018_001-365_LEVEL4_TSA_SEN2L_NDV_TSS.tif'
+    raster_path = 'X:/SattGruen/Analyse/GLSEG/Raster/X0068_Y0043/2018-2018_001-365_LEVEL4_TSA_SEN2L_NDV_TSS.tif'
     list_of_raster = Tif_finder(data_patg_alt)
     print(list_of_raster)
     list_of_shapes = Shape_finder(data_path + 'Polygon_Ribbek/')
@@ -38,6 +38,6 @@ if __name__ == '__main__':
             shapei=row, indexo=index, subsetter=None) for
         index, row in gdf.iterrows())
     """
-    Parallel(n_jobs=1)(delayed(segment_cnn)(raster_path, vector_geom=row, data_path_output=data_path,
+    Parallel(n_jobs=1)(delayed(segment_2)(raster_path, vector_geom=row, data_path_output=data_path,
                                             indexo=index, n_band=3, custom_subsetter=range(5,60)) for index, row in gdf.iterrows())
 
