@@ -4,7 +4,7 @@ import fiona
 import math
 import rasterio
 import matplotlib.pyplot as plt
-import dictances
+#import dictances
 import itertools
 import pandas as pd
 import gdal
