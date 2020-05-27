@@ -10,7 +10,7 @@ from Wes_Tools.Accuracy_ import *
 from Wes_Tools.Plots_OBIA import *
 from Wes_Tools.__Segmentor import *
 from Wes_Tools.__CNN_segment import *
-from Wes_Tools.__join_results import *
+from Wes_Tools.__Join_results import *
 
 
 if __name__ == '__main__':
@@ -30,9 +30,10 @@ if __name__ == '__main__':
                                                 indexo=index, n_band=7, custom_subsetter=range(5,60),
                                                                  MMU=0.01, PCA=False) for index, row in gdf.iterrows())
         """
-        segment_shapes = Shape_finder(data_path + 'output/')
-        print(segment_shapes)
-        US_out, OS_out, Overall_out = Accuracy_Assessment.Liu(data_path + 'Vector/Paulienenaue_TF.shp', segment_shapes)
+        joined = join_shapes_gpd(data_path + 'output/', own_segmentation=True)
+        joined.to_file(data_path + 'output/joined.shp')
+
+        US_out, OS_out, Overall_out = Accuracy_Assessment.Liu(data_path + 'Vector/Paulienenaue_TF.shp', data_path + 'output/joined.shp')
         print(np.mean(np.array(Overall_out)))
     """
     # drop cluster number 0, which is all no grassland polygons

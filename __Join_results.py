@@ -16,5 +16,6 @@ def join_shapes_gpd(path_to_shapes, own_segmentation=None):
         # drop all entries with field nb = na, which don't have a geometry and are duplicates
         indexNames_2 = gdf[np.isnan(gdf['field_nb'])].index
         gdf.drop(indexNames_2, inplace=True)
+        return gdf
     else:
         return gdf
