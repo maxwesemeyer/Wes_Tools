@@ -92,7 +92,7 @@ class Segmentation():
 
 def segment_cnn(string_to_raster, vector_geom, indexo=np.random.randint(0, 100000),
               data_path_output=None, n_band=50, into_pca=50, lr_var=0.1,
-              custom_subsetter=range(0,80),  MMU=0.05):
+              custom_subsetter=range(0,80),  MMU=0.05, PCA=True):
     if os.path.exists(data_path_output + 'output'):
         print('output directory already exists')
         # os.rmdir(data_path_output + 'output')
@@ -104,15 +104,13 @@ def segment_cnn(string_to_raster, vector_geom, indexo=np.random.randint(0, 10000
 
     ###########
     # prepare data function does the magic here
-    three_d_image, two_d_im_pca, mask_local, gt_gdal = prepare_data(string_to_raster, vector_geom, custom_subsetter, n_band, MMU=MMU, PCA=True)
+    three_d_image, two_d_im_pca, mask_local, gt_gdal = prepare_data(string_to_raster, vector_geom, custom_subsetter, n_band, MMU=MMU, PCA=PCA)
     # in case grassland area is too small
     if three_d_image is None:
         return
-    #data_path = data_path_output
 
-    #labels = KMeans(n_clusters=5).fit_predict(scaled_arg_2d)
-    #labels = segmentation.felzenszwalb(scaled_shaped[:, :, arg_10[:3]], scale=2)  #
-    labels = segmentation.slic(three_d_image, n_segments=100, compactness=10)
+    labels = segmentation.felzenszwalb(three_d_image, scale=0.1)  #
+    #labels = segmentation.slic(three_d_image, n_segments=1000, compactness=20)
 
     im = three_d_image
     file_str = "{}{}{}".format(data_path + "/output/out_labels", str(field_counter), "_")

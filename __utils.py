@@ -158,7 +158,6 @@ def image_2_2d(image_of_shape):
 
 def prepare_data(raster_l, vector_geom, custom_subsetter=range(5,65), n_band=11, MMU=0.05, PCA=True):
     shp = [vector_geom.geometry]
-    subsetter_tss = custom_subsetter
     subsetter_tsi = custom_subsetter
     try:
         with rasterio.open(raster_l) as src:
@@ -201,7 +200,7 @@ def prepare_data(raster_l, vector_geom, custom_subsetter=range(5,65), n_band=11,
                 ###########
                 # selects bands which have only valid pixels
                 arg_10 = select_bands_sd(out_image_nan, max_valid_pixels_=max_valid_pixel)
-                print(arg_10)
+
 
                 im = scaled_shaped[:, :, arg_10]
                 im[im == 0] = np.nan
@@ -210,6 +209,7 @@ def prepare_data(raster_l, vector_geom, custom_subsetter=range(5,65), n_band=11,
                 scaled_arg_2d[np.isnan(scaled_arg_2d)] = 0
 
                 if PCA:
+                    print(arg_10)
                     #################
                     # PCA
                     n_comps = n_band
@@ -221,7 +221,8 @@ def prepare_data(raster_l, vector_geom, custom_subsetter=range(5,65), n_band=11,
                     print('IMAGE PCA', image_pca.shape)
                     return image_pca, im_pca_2d, mask_local, gt_gdal
                 else:
-                    return im, scaled_arg_2d, mask_local, gt_gdal
+                    print('No PCA, Shape:', im[:, :, :n_band].shape)
+                    return im[:, :, :n_band], scaled_arg_2d[:, :n_band], mask_local, gt_gdal
     except:
         print('Maybe input shapes did not overlap')
         return None, None, None, None

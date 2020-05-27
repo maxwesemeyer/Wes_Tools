@@ -14,15 +14,18 @@ from Wes_Tools.__CNN_segment import *
 if __name__ == '__main__':
     data_path = 'X:/temp/temp_Max/Data/'
     data_patg_alt = 'X:/SattGruen/Analyse/GLSEG/Raster'
-    raster_path = 'X:/SattGruen/Analyse/GLSEG/Raster/X0068_Y0043/2018-2018_001-365_LEVEL4_TSA_SEN2L_NDV_TSS.tif'
-    list_of_raster = Tif_finder(data_patg_alt)
-    print(list_of_raster)
-    list_of_shapes = Shape_finder(data_path + 'Polygon_Ribbek/')
-    print(list_of_shapes)
-    set_global_Cnn_variables(bands=3)
+    raster_path = 'X:/SattGruen/Analyse/GLSEG/Raster/X0068_Y0042/2018-2018_001-365_LEVEL4_TSA_SEN2L_NDV_TSS.tif'
+    vector_path = data_path + 'Vector/dissolved_paulinaue_3035.gpkg'
 
-    gdf = gpd.GeoDataFrame(pd.concat([gpd.read_file(list_of_shapes[1])], ignore_index=True),
-                           crs=gpd.read_file(list_of_shapes[1]).crs)
+    set_global_Cnn_variables(bands=7, convs=3)
+
+    gdf = gpd.GeoDataFrame(pd.concat([gpd.read_file(vector_path)], ignore_index=True),
+                           crs=gpd.read_file(vector_path).crs)
+
+    Parallel(n_jobs=1)(delayed(segment_2)(raster_path, vector_geom=row, data_path_output=data_path,
+                                            indexo=index, n_band=7, custom_subsetter=range(5,60), PCA=False) for index, row in gdf.iterrows())
+
+
     """
     # drop cluster number 0, which is all no grassland polygons
     indexNames = gdf[gdf['Cluster_nb'] == 0].index
@@ -38,5 +41,3 @@ if __name__ == '__main__':
             shapei=row, indexo=index, subsetter=None) for
         index, row in gdf.iterrows())
     """
-    Parallel(n_jobs=1)(delayed(segment_2)(raster_path, vector_geom=row, data_path_output=data_path,
-                                            indexo=index, n_band=3, custom_subsetter=range(5,60), PCA=False) for index, row in gdf.iterrows())
