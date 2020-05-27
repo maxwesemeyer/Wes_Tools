@@ -105,7 +105,8 @@ def segment_2(string_to_raster, vector_geom, indexo=np.random.randint(0, 100000)
     :param vector_mask: list of fiona geometries
     :param beta_coef: Bayseg parameter; controls autocorrelation of segments
     :param beta_jump: Bayseg parameter
-    :param n_band: How many PCs will be used
+    :param n_band: How many PCs/bands will be used; 
+    if set higher than bands actually available all available bands will be used
     :param into_pca: How many bands schould be used for the PCA; By default all
     :param custom_subsetter: In case not to use all the input bands
     :param data_path_output: Where to save the results?

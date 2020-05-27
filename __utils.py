@@ -221,8 +221,12 @@ def prepare_data(raster_l, vector_geom, custom_subsetter=range(5,65), n_band=11,
                     print('IMAGE PCA', image_pca.shape)
                     return image_pca, im_pca_2d, mask_local, gt_gdal
                 else:
-                    print('No PCA, Shape:', im[:, :, :n_band].shape)
-                    return im[:, :, :n_band], scaled_arg_2d[:, :n_band], mask_local, gt_gdal
+                    if im[:, :, :].shape[2] > n_band:
+                        print('n_band parameter than bands available; used all available bands')
+                        return im, scaled_arg_2d, mask_local, gt_gdal
+                    else:
+                        print('no pca, used: ', n_band, ' bands')
+                        return im[:, :, :n_band], scaled_arg_2d[:, :n_band], mask_local, gt_gdal
     except:
         print('Maybe input shapes did not overlap')
         return None, None, None, None
