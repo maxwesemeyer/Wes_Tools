@@ -129,7 +129,7 @@ def segment_2(string_to_raster, vector_geom, indexo=np.random.randint(0, 100000)
     if three_d_image is None:
         return
     ############################################################
-    n_class = 20
+    n_class = 10
     # old 4, 3, 4, 6 for MA now 10
     mino = bayseg.bic(two_d_im_pca, n_class)
     # mino = 4
@@ -176,5 +176,8 @@ def segment_2(string_to_raster, vector_geom, indexo=np.random.randint(0, 100000)
     #
     # WriteArrayToDisk(labels_img, file_str_maj, gt_gdal, polygonite=True, fieldo=field_counter)
     WriteArrayToDisk(ie_img, file_str_ie, gt_gdal, polygonite=False, fieldo=field_counter)
-    return file_str + 'polygonized.shp'
+    if file_str is None:
+        print('not returning anything')
+    else:
+        return file_str + 'polygonized.shp'
 

@@ -109,8 +109,8 @@ def segment_cnn(string_to_raster, vector_geom, indexo=np.random.randint(0, 10000
     if three_d_image is None:
         return
 
-    labels = segmentation.felzenszwalb(three_d_image, scale=0.1)  #
-    #labels = segmentation.slic(three_d_image, n_segments=1000, compactness=20)
+    #labels = segmentation.felzenszwalb(three_d_image, scale=0.1)  #
+    labels = segmentation.slic(three_d_image, n_segments=100, compactness=10)
 
     im = three_d_image
     file_str = "{}{}{}".format(data_path + "/output/out_labels", str(field_counter), "_")
@@ -122,7 +122,7 @@ def segment_cnn(string_to_raster, vector_geom, indexo=np.random.randint(0, 10000
     labels = labels_img.reshape(im.shape[0] * im.shape[1])
     print(im.shape, labels.shape)
     plt.imshow(labels_img)
-    plt.show()
+    #plt.show()
 
     # WriteArrayToDisk(labels_img, file_str, gt_gdal, polygonite=True)
     ################################ cnn stuff
@@ -166,8 +166,8 @@ def segment_cnn(string_to_raster, vector_geom, indexo=np.random.randint(0, 10000
 
             images.append((im_target_rgb[:, :, 0]))
 
-            cv2.imshow("output", im_target_rgb[:, :, [0, 1, 2]])
-            cv2.waitKey(n_band)
+            #cv2.imshow("output", im_target_rgb[:, :, [0, 1, 2]])
+            #cv2.waitKey(n_band)
 
         # superpixel refinement
         # TODO: use Torch Variable instead of numpy for faster calculation

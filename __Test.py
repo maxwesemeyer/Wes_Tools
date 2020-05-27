@@ -2,6 +2,7 @@ import sys
 import geopandas as gpd
 import pandas as pd
 from joblib import Parallel, delayed
+import numpy as np
 import fiona
 sys.path.append("X:/temp/temp_Max/")
 
@@ -9,6 +10,7 @@ from Wes_Tools.Accuracy_ import *
 from Wes_Tools.Plots_OBIA import *
 from Wes_Tools.__Segmentor import *
 from Wes_Tools.__CNN_segment import *
+from Wes_Tools.__join_results import *
 
 
 if __name__ == '__main__':
@@ -23,11 +25,15 @@ if __name__ == '__main__':
                            crs=gpd.read_file(vector_path).crs)
     params = [1,2,3]
     for par in params:
-
-        segment_shapes = Parallel(n_jobs=1)(delayed(segment_2)(raster_path, vector_geom=row, data_path_output=data_path,
-                                                indexo=index, n_band=7, custom_subsetter=range(5,60), PCA=False) for index, row in gdf.iterrows())
-        Accuracy_Assessment.Liu(data_path + 'Paulienenaue_TF.shp', segment_shapes)
-
+        """
+        Parallel(n_jobs=1)(delayed(segment_cnn)(raster_path, vector_geom=row, data_path_output=data_path,
+                                                indexo=index, n_band=7, custom_subsetter=range(5,60),
+                                                                 MMU=0.01, PCA=False) for index, row in gdf.iterrows())
+        """
+        segment_shapes = Shape_finder(data_path + 'output/')
+        print(segment_shapes)
+        US_out, OS_out, Overall_out = Accuracy_Assessment.Liu(data_path + 'Vector/Paulienenaue_TF.shp', segment_shapes)
+        print(np.mean(np.array(Overall_out)))
     """
     # drop cluster number 0, which is all no grassland polygons
     indexNames = gdf[gdf['Cluster_nb'] == 0].index
