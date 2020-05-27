@@ -15,16 +15,18 @@ if __name__ == '__main__':
     data_path = 'X:/temp/temp_Max/Data/'
     data_patg_alt = 'X:/SattGruen/Analyse/GLSEG/Raster'
     raster_path = 'X:/SattGruen/Analyse/GLSEG/Raster/X0068_Y0042/2018-2018_001-365_LEVEL4_TSA_SEN2L_NDV_TSS.tif'
-    vector_path = data_path + 'Vector/dissolved_paulinaue_3035.gpkg'
+    vector_path = data_path + 'Vector/dissolved_paulinaue_3035_parcels.gpkg'
 
     set_global_Cnn_variables(bands=7, convs=3)
 
     gdf = gpd.GeoDataFrame(pd.concat([gpd.read_file(vector_path)], ignore_index=True),
                            crs=gpd.read_file(vector_path).crs)
+    params = [1,2,3]
+    for par in params:
 
-    Parallel(n_jobs=1)(delayed(segment_2)(raster_path, vector_geom=row, data_path_output=data_path,
-                                            indexo=index, n_band=7, custom_subsetter=range(5,60), PCA=False) for index, row in gdf.iterrows())
-
+        segment_shapes = Parallel(n_jobs=1)(delayed(segment_2)(raster_path, vector_geom=row, data_path_output=data_path,
+                                                indexo=index, n_band=7, custom_subsetter=range(5,60), PCA=False) for index, row in gdf.iterrows())
+        Accuracy_Assessment.Liu(data_path + 'Paulienenaue_TF.shp', segment_shapes)
 
     """
     # drop cluster number 0, which is all no grassland polygons

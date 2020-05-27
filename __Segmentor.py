@@ -105,7 +105,7 @@ def segment_2(string_to_raster, vector_geom, indexo=np.random.randint(0, 100000)
     :param vector_mask: list of fiona geometries
     :param beta_coef: Bayseg parameter; controls autocorrelation of segments
     :param beta_jump: Bayseg parameter
-    :param n_band: How many PCs/bands will be used; 
+    :param n_band: How many PCs/bands will be used;
     if set higher than bands actually available all available bands will be used
     :param into_pca: How many bands schould be used for the PCA; By default all
     :param custom_subsetter: In case not to use all the input bands
@@ -133,7 +133,7 @@ def segment_2(string_to_raster, vector_geom, indexo=np.random.randint(0, 100000)
     # old 4, 3, 4, 6 for MA now 10
     mino = bayseg.bic(two_d_im_pca, n_class)
     # mino = 4
-    itero = 50
+    itero = 5
     # print(mino)
     clf = bayseg.BaySeg(three_d_image, mino, beta_init=beta_coef)
     clf.fit(itero, beta_jump_length=beta_jump)
@@ -176,5 +176,5 @@ def segment_2(string_to_raster, vector_geom, indexo=np.random.randint(0, 100000)
     #
     # WriteArrayToDisk(labels_img, file_str_maj, gt_gdal, polygonite=True, fieldo=field_counter)
     WriteArrayToDisk(ie_img, file_str_ie, gt_gdal, polygonite=False, fieldo=field_counter)
-
+    return file_str + 'polygonized.shp'
 
