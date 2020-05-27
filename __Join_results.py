@@ -4,10 +4,10 @@ import pandas as pd
 import numpy as np
 
 
-def join_shapes_gpd(path_to_shapes, own_segmentation=None):
+def join_shapes_gpd(path_to_shapes, own_segmentation=None, KBS="EPSG:3035"):
     file = os.listdir(path_to_shapes)
     path = [os.path.join(path_to_shapes, i) for i in file if ".shp" in i]
-    gdf = gpd.GeoDataFrame(pd.concat([gpd.read_file(i) for i in path], ignore_index=True), crs=gpd.read_file(path[0]).crs)
+    gdf = gpd.GeoDataFrame(pd.concat([gpd.read_file(i) for i in path], ignore_index=True), crs=KBS)
     if own_segmentation:
         # drop cluster number 0, which is all no grassland polygons
         indexNames = gdf[gdf['Cluster_nb'] == 0].index

@@ -3,6 +3,7 @@ import geopandas as gpd
 import pandas as pd
 from joblib import Parallel, delayed
 import numpy as np
+import os
 import fiona
 sys.path.append("X:/temp/temp_Max/")
 
@@ -31,10 +32,13 @@ if __name__ == '__main__':
                                                                  MMU=0.01, PCA=False) for index, row in gdf.iterrows())
         """
         joined = join_shapes_gpd(data_path + 'output/', own_segmentation=True)
-        joined.to_file(data_path + 'output/joined.shp')
+        joined.to_file(data_path + 'output/joined.gpkg')
 
-        US_out, OS_out, Overall_out = Accuracy_Assessment.Liu(data_path + 'Vector/Paulienenaue_TF.shp', data_path + 'output/joined.shp')
-        print(np.mean(np.array(Overall_out)))
+        US_out, OS_out, Overall_out = Accuracy_Assessment.Liu(data_path + 'Vector/Paulienenaue_TF.shp', data_path + 'output/joined.gpkg')
+        print(np.mean(np.array(US_out)), np.mean(np.array(OS_out)), np.mean(np.array(Overall_out)))
+        US_out, OS_out, Overall_out = Accuracy_Assessment.Clinton(data_path + 'Vector/Paulienenaue_TF.shp', data_path + 'output/joined.gpkg')
+        print(np.mean(np.array(US_out)), np.mean(np.array(OS_out)), np.mean(np.array(Overall_out)))
+        os.remove(data_path + 'output/joined.gpkg')
     """
     # drop cluster number 0, which is all no grassland polygons
     indexNames = gdf[gdf['Cluster_nb'] == 0].index
