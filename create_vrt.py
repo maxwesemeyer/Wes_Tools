@@ -4,7 +4,7 @@ from osgeo import gdal
 from joblib import Parallel, delayed
 from osgeo import gdal
 import re
-
+import rasterio
 
 def merge_vrt_tiles(folder_stacked_vrt, folder_stacked_vrt_global):
 
@@ -45,15 +45,15 @@ for root, dirs, files in os.walk(data_path_input, topdown=True):
         else:
             continue
 
-topo = True
-soil = True
+topo = False
+soil = False
 
 temp_clim = False
 prec_clim = False
 
-temp_mete = True
-prec_mete = True
-smoist_mete = True
+temp_mete = False
+prec_mete = False
+smoist_mete = False
 
 
 # rad
@@ -148,27 +148,33 @@ print(file_path_raster)
 
 
 
-import rasterio
 
-file_list = file_path_raster
+def create_stack(path_to_overlapping_rasters, n_bands=70):
+    """
 
-# Read metadata of first file
-with rasterio.open(file_list[0]) as src0:
-    meta = src0.meta
+    :param path_to_overlapping_rasters: list of paths to rasters
+    :param n_bands: number of bands per raster; will be multiplied by number of files
+    :return:
+    """
+    file_list = path_to_overlapping_rasters
 
-# Update meta to reflect the number of layers
-meta.update(count = len(file_list)*70)
+    # Read metadata of first file
+    with rasterio.open(file_list[0]) as src0:
+        meta = src0.meta
 
-# Read each layer and write it to stack
-id_counter = 1
-with rasterio.open('Z:/lower_saxony_sentinel2_TSA_coreg/X0061_Y0046/stack.tif', 'w', **meta) as dst:
-    for id, layer in enumerate(file_list, start=1):
-        print(id, layer)
+    # Update meta to reflect the number of layers
+    meta.update(count = len(file_list)*n_bands)
 
-        with rasterio.open(layer) as src1:
-            for i in range(1,35):
-                print(i)
-                dst.write_band(id_counter, src1.read(i))
-                id_counter += 1
-                print('BAND=', id_counter)
+    # Read each layer and write it to stack
+    id_counter = 1
+    with rasterio.open('Z:/lower_saxony_sentinel2_TSA_coreg/X0061_Y0046/stack.tif', 'w', **meta) as dst:
+        for id, layer in enumerate(file_list, start=1):
+            print(id, layer)
+
+            with rasterio.open(layer) as src1:
+                for i in range(1,35):
+                    print(i)
+                    dst.write_band(id_counter, src1.read(i))
+                    id_counter += 1
+                    print('BAND=', id_counter)
 
