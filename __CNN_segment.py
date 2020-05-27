@@ -99,6 +99,9 @@ def segment_cnn(string_to_raster, vector_geom, indexo=np.random.randint(0, 10000
     ###########
     # prepare data function does the magic here
     three_d_image, two_d_im_pca, mask_local, gt_gdal = prepare_data(string_to_raster, vector_geom, custom_subsetter, n_band, MMU=MMU, PCA=True)
+    # in case grassland area is too small
+    if three_d_image == 1 and two_d_im_pca == 1:
+        return
     data_path = data_path_output
 
     #labels = KMeans(n_clusters=5).fit_predict(scaled_arg_2d)

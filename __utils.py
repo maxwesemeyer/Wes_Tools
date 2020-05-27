@@ -20,7 +20,7 @@ def Shape_finder(input_path):
     for root, dirs, files in os.walk(data_path_input, topdown=True):
         for file in files:
             if re.match(".*[s][h][p]{1,2}$", file):
-                file_path_raster.append(str(root + file))
+                file_path_raster.append(str(root + '/' + file))
             else:
                 continue
     return file_path_raster
@@ -174,7 +174,7 @@ def prepare_data(raster_l, vector_geom, custom_subsetter=range(5,65), n_band=11,
         print('Parcel Area:', max_valid_pixel * 100 / 1000000, ' km²')
         if max_valid_pixel * 100 / 1000000 < MMU:
             print('pass')
-            pass
+            return 1, 1, 1, 1
         else:
             w = np.where(out_image < 0)
 
