@@ -22,9 +22,9 @@ if __name__ == '__main__':
     set_global_Cnn_variables(bands=3)
 
 
-    gdf = gpd.GeoDataFrame(pd.concat([gpd.read_file(data_path + 'Neu_test.gpkg')], ignore_index=True),
-                           crs=gpd.read_file(data_path + 'Neu_test.gpkg').crs)
-    """"""
+    gdf = gpd.GeoDataFrame(pd.concat([gpd.read_file(list_of_shapes)], ignore_index=True),
+                           crs=gpd.read_file(list_of_shapes[0]).crs)
+    """
     # drop cluster number 0, which is all no grassland polygons
     indexNames = gdf[gdf['Cluster_nb'] == 0].index
     gdf.drop(indexNames, inplace=True)
@@ -32,8 +32,7 @@ if __name__ == '__main__':
     # drop all entries with field nb = na, which don't have a geometry and are duplicates
     indexNames_2 = gdf[np.isnan(gdf['field_nb'])].index
     gdf.drop(indexNames_2, inplace=True)
-    """
-    """
+
     x = Parallel(n_jobs=1)(
         delayed(aggregator)(
             raster_NDV='X:/lower_saxony_sentinel2_TSA_coreg/X0061_Y0046/2018-2020_001-365_HL_TSA_SEN2L_NDV_TSS.tif',
