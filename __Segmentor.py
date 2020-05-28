@@ -98,16 +98,15 @@ def scfilter(image, iterations, kernel):
 
 
 def segment_2(string_to_raster, vector_geom, indexo=np.random.randint(0, 100000),
-              data_path_output=None, beta_coef=1, beta_jump=0.1, n_band=50, into_pca=50,
+              data_path_output=None, beta_coef=1, beta_jump=0.1, n_band=50,
               custom_subsetter=range(0,80),  MMU=0.05, PCA=True):
     """
     :param string_to_raster: path to raster file
-    :param vector_mask: list of fiona geometries
+    :param vector_geom: list of fiona geometries
     :param beta_coef: Bayseg parameter; controls autocorrelation of segments
     :param beta_jump: Bayseg parameter
     :param n_band: How many PCs/bands will be used;
     if set higher than bands actually available all available bands will be used
-    :param into_pca: How many bands schould be used for the PCA; By default all
     :param custom_subsetter: In case not to use all the input bands
     :param data_path_output: Where to save the results?
     :param MMU: Minumum Mapping Unit in km²; below that input will be set as one segment
@@ -116,14 +115,15 @@ def segment_2(string_to_raster, vector_geom, indexo=np.random.randint(0, 100000)
     # raster_tsi = string_to_raster.replace('TSS', 'TSI')
     range(0, 35 * 14) for coreg stack
     """
-
+    """
     if os.path.exists(data_path_output + 'output'):
         print('output directory already exists')
         #os.rmdir(data_path_output + 'output')
     else:
         os.mkdir(data_path_output + 'output')
+    """
     data_patho = data_path_output + 'output'
-    field_counter = "{}{}{}{}{}{}".format(str(into_pca), "_", str(beta_jump), "_", str(n_band), str(indexo))
+    field_counter = "{}{}{}{}{}{}{}".format(str(n_band), "_", str(beta_jump), "_", str(beta_coef), str(indexo), str(PCA))
 
     three_d_image, two_d_im_pca, mask_local, gt_gdal = prepare_data(string_to_raster, vector_geom, custom_subsetter, n_band, MMU=MMU, PCA=PCA)
     if three_d_image is None:
@@ -133,7 +133,7 @@ def segment_2(string_to_raster, vector_geom, indexo=np.random.randint(0, 100000)
     # old 4, 3, 4, 6 for MA now 10
     mino = bayseg.bic(two_d_im_pca, n_class)
     # mino = 4
-    itero = 5
+    itero = 100
     # print(mino)
     clf = bayseg.BaySeg(three_d_image, mino, beta_init=beta_coef)
     clf.fit(itero, beta_jump_length=beta_jump)

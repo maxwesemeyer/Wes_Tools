@@ -212,7 +212,10 @@ def prepare_data(raster_l, vector_geom, custom_subsetter=range(5,65), n_band=11,
                     print(arg_10)
                     #################
                     # PCA
-                    n_comps = n_band
+                    if len(arg_10) > n_band:
+                        n_comps = n_band
+                    else:
+                        n_comps = len(arg_10)
                     pca = decomposition.PCA(n_components=n_comps)
                     im_pca_2d = pca.fit_transform(scaled_arg_2d)
                     print(pca.explained_variance_ratio_)

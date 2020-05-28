@@ -46,6 +46,7 @@ class Accuracy_Assessment:
 
             for shp_ref in shapes_ref:
                 shp_seg = shape(shp_seg)
+                A_int = shp_seg.intersection(shape(shp_ref)).area
                 try:
                     A_int = shp_seg.intersection(shape(shp_ref)).area
                 except:

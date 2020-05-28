@@ -5,6 +5,7 @@ from joblib import Parallel, delayed
 import numpy as np
 import os
 import fiona
+import shutil
 sys.path.append("X:/temp/temp_Max/")
 
 from Wes_Tools.Accuracy_ import *
@@ -24,21 +25,34 @@ if __name__ == '__main__':
 
     gdf = gpd.GeoDataFrame(pd.concat([gpd.read_file(vector_path)], ignore_index=True),
                            crs=gpd.read_file(vector_path).crs)
-    params = [1,2,3]
-    for par in params:
-        """
-        Parallel(n_jobs=1)(delayed(segment_cnn)(raster_path, vector_geom=row, data_path_output=data_path,
-                                                indexo=index, n_band=7, custom_subsetter=range(5,60),
-                                                                 MMU=0.01, PCA=False) for index, row in gdf.iterrows())
-        """
-        joined = join_shapes_gpd(data_path + 'output/', own_segmentation=True)
-        joined.to_file(data_path + 'output/joined.gpkg')
+    #params = [2, 3, 7, 11, 100]
+    params = [100]
+    PCA_ = [True, False]
+    for PC in PCA_:
+        for par in params:
+            # does not work within function with parallel os.mkdir
+            os.mkdir(data_path + 'output')
+            Parallel(n_jobs=9)(delayed(segment_2)(raster_path, vector_geom=row, data_path_output=data_path,
+                                                    indexo=index, n_band=par, custom_subsetter=range(3,62),
+                                                                     MMU=0.01, PCA=PC) for index, row in gdf.iterrows())
 
-        US_out, OS_out, Overall_out = Accuracy_Assessment.Liu(data_path + 'Vector/Paulienenaue_TF.shp', data_path + 'output/joined.gpkg')
-        print(np.mean(np.array(US_out)), np.mean(np.array(OS_out)), np.mean(np.array(Overall_out)))
-        US_out, OS_out, Overall_out = Accuracy_Assessment.Clinton(data_path + 'Vector/Paulienenaue_TF.shp', data_path + 'output/joined.gpkg')
-        print(np.mean(np.array(US_out)), np.mean(np.array(OS_out)), np.mean(np.array(Overall_out)))
-        os.remove(data_path + 'output/joined.gpkg')
+            joined = join_shapes_gpd(data_path + 'output/', own_segmentation=True)
+
+            if os.path.exists(data_path + 'joined'):
+                print('output directory already exists')
+
+            else:
+                os.mkdir(data_path + 'joined')
+
+            field_counter = "{}{}{}{}".format(str(PC), "_", str(par), "_")
+            print(field_counter)
+            joined.to_file(data_path + 'joined/joined_' +  field_counter + '.shp')
+            shutil.rmtree(data_path + 'output/')
+            #US_out, OS_out, Overall_out = Accuracy_Assessment.Liu(data_path + 'Vector/Paulienenaue_TF.shp', data_path + 'output/joined.shp')
+            #print(np.mean(np.array(US_out)), np.mean(np.array(OS_out)), np.mean(np.array(Overall_out)))
+            #US_out, OS_out, Overall_out = Accuracy_Assessment.Clinton(data_path + 'Vector/Paulienenaue_TF.shp', data_path + 'output/joined.shp')
+            #print(np.mean(np.array(US_out)), np.mean(np.array(OS_out)), np.mean(np.array(Overall_out)))
+            #os.remove(data_path + 'output/joined.shp')
     """
     # drop cluster number 0, which is all no grassland polygons
     indexNames = gdf[gdf['Cluster_nb'] == 0].index
