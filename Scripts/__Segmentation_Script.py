@@ -25,11 +25,15 @@ if __name__ == '__main__':
 
     gdf = gpd.GeoDataFrame(pd.concat([gpd.read_file(vector_path)], ignore_index=True),
                            crs=gpd.read_file(vector_path).crs)
-    params_bands = [2, 3, 7, 11, 100]
+    #params_bands = [2, 3, 7, 11, 100]
     beta_list = [20, 50, 100]
+    # best set of parameters so far: no PCA, all available bands and Beta=20;
+    # according to Liu: no PCA, 11 bands, Beta=100
     #PCA_ = [True, False]
-    PCA_ = [False]
+    PCA_ = [True]
+    params_bands = [2, 3, 7]
     for PC in PCA_:
+        print(PC)
         for par in params_bands:
             for betas in beta_list:
                 # does not work within function with parallel os.mkdir
