@@ -25,9 +25,10 @@ if __name__ == '__main__':
 
     gdf = gpd.GeoDataFrame(pd.concat([gpd.read_file(vector_path)], ignore_index=True),
                            crs=gpd.read_file(vector_path).crs)
-    #params = [2, 3, 7, 11, 100]
-    params = [100]
-    PCA_ = [True, False]
+    params = [2, 3, 7, 11]
+    #params = [100]
+    #PCA_ = [True, False]
+    PCA_ = [False]
     for PC in PCA_:
         for par in params:
             # does not work within function with parallel os.mkdir
@@ -48,11 +49,7 @@ if __name__ == '__main__':
             print(field_counter)
             joined.to_file(data_path + 'joined/joined_' +  field_counter + '.shp')
             shutil.rmtree(data_path + 'output/')
-            #US_out, OS_out, Overall_out = Accuracy_Assessment.Liu(data_path + 'Vector/Paulienenaue_TF.shp', data_path + 'output/joined.shp')
-            #print(np.mean(np.array(US_out)), np.mean(np.array(OS_out)), np.mean(np.array(Overall_out)))
-            #US_out, OS_out, Overall_out = Accuracy_Assessment.Clinton(data_path + 'Vector/Paulienenaue_TF.shp', data_path + 'output/joined.shp')
-            #print(np.mean(np.array(US_out)), np.mean(np.array(OS_out)), np.mean(np.array(Overall_out)))
-            #os.remove(data_path + 'output/joined.shp')
+
     """
     # drop cluster number 0, which is all no grassland polygons
     indexNames = gdf[gdf['Cluster_nb'] == 0].index
