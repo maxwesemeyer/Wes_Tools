@@ -47,6 +47,12 @@ class Accuracy_Assessment:
             for shp_ref in shapes_ref:
                 shp_seg = shape(shp_seg)
                 A_int = shp_seg.intersection(shape(shp_ref)).area
+                try:
+                    A_int = shp_seg.intersection(shape(shp_ref)).area
+                except:
+                    # TODO: error due to invalid geometry
+                    print('Some error I need to figure out; Invalid geometry')
+                    A_int = 0
                 if A_int == 0:
                     continue
                 else:
@@ -82,12 +88,10 @@ class Accuracy_Assessment:
             shapes_ref = [feature["geometry"] for feature in shapefile]
         with fiona.open(segmentation_poly) as shapefile:
             shapes_seg = [feature["geometry"] for feature in shapefile]
-
         # store values for output
         PSE_list = []
 
         for shp_seg in shapes_seg:
-
             # temp lists
             A_seg_list_temp = []
             Area_ref_temp = []
@@ -95,9 +99,15 @@ class Accuracy_Assessment:
 
             for shp_ref in shapes_ref:
                 shp_seg = shape(shp_seg)
-                A_int = shp_seg.intersection(shape(shp_ref)).area
+                try:
+                    A_int = shp_seg.intersection(shape(shp_ref)).area
+                except:
+                    # TODO: error due to invalid geometry
+                    print('Some error I need to figure out; Invalid geometry')
+                    A_int = 0
                 A_ref = shape(shp_ref).area
                 A_seg = shp_seg.area
+
                 # areal_overlap_based_criteria =
                 # the area of intersection between a reference polygon and the candidate segment is more than half the area of
                 # either the reference polygon or the candidate segment
