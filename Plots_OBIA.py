@@ -14,7 +14,7 @@ def nan_helper(y):
     return np.isnan(y), lambda z: z.nonzero()[0]
 
 
-def plot_shapefile(vector_data, raster_data, own_segmentation=False):
+def plot_shapefile(vector_data, raster_data, own_segmentation=False, error_plot=False):
     # Create a ListedColormap with only the color green specified
     cmap = colors.ListedColormap(['green'])
     # Use the `set_bad` property of `colormaps` to set all the 'bad' data to red
@@ -77,14 +77,15 @@ def plot_shapefile(vector_data, raster_data, own_segmentation=False):
             x = np.linspace(1, len(row_mean), len(row_mean))
             plt.subplot(grid_size, grid_size, i)
             plt.title(str(feature_list[i-1]))
-            plt.errorbar(x, row_mean, row_sd)
+            if error_plot:
+                plt.errorbar(x, row_mean, row_sd)
 
             # create list of length nans and convert it to array then set colors
-            color = np.array([str(1)] * len(nans))
-            color[nans] = 'red'
-            color[~nans] = 'green'
-
-            #plt.scatter(x, row_mean, s=5, c=color)
+            else:
+                color = np.array([str(1)] * len(nans))
+                color[nans] = 'red'
+                color[~nans] = 'green'
+                plt.scatter(x, row_mean, s=5, c=color)
             i += 1
     plt.show()
     if own_segmentation:

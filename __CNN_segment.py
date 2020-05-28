@@ -91,7 +91,7 @@ class Segmentation():
 
 
 def segment_cnn(string_to_raster, vector_geom, indexo=np.random.randint(0, 100000),
-              data_path_output=None, n_band=50, into_pca=50, lr_var=0.1,
+              data_path_output=None, n_band=50, into_pca=50, lr_var=0.1, convs=2,
               custom_subsetter=range(0,80),  MMU=0.05, PCA=True):
     """
     The CNN unsupervised segmentation is based on a paper by Asako Kanezaki;
@@ -109,6 +109,8 @@ def segment_cnn(string_to_raster, vector_geom, indexo=np.random.randint(0, 10000
     :param PCA:
     :return:
     """
+    set_global_Cnn_variables(bands=n_band, convs=convs)
+    print(nConv)
     if os.path.exists(data_path_output + 'output'):
         print('output directory already exists')
         # os.rmdir(data_path_output + 'output')
