@@ -93,6 +93,22 @@ class Segmentation():
 def segment_cnn(string_to_raster, vector_geom, indexo=np.random.randint(0, 100000),
               data_path_output=None, n_band=50, into_pca=50, lr_var=0.1,
               custom_subsetter=range(0,80),  MMU=0.05, PCA=True):
+    """
+    The CNN unsupervised segmentation is based on a paper by Asako Kanezaki;
+    "Unsupervised Image Segmentation by Backpropagation"
+    on Github: https://github.com/kanezaki/pytorch-unsupervised-segmentation
+    :param string_to_raster:
+    :param vector_geom:
+    :param indexo:
+    :param data_path_output:
+    :param n_band:
+    :param into_pca:
+    :param lr_var:
+    :param custom_subsetter:
+    :param MMU:
+    :param PCA:
+    :return:
+    """
     if os.path.exists(data_path_output + 'output'):
         print('output directory already exists')
         # os.rmdir(data_path_output + 'output')
