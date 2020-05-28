@@ -25,30 +25,32 @@ if __name__ == '__main__':
 
     gdf = gpd.GeoDataFrame(pd.concat([gpd.read_file(vector_path)], ignore_index=True),
                            crs=gpd.read_file(vector_path).crs)
-    params = [2, 3, 7, 11]
-    #params = [100]
+    params_bands = [2, 3, 7, 11, 100]
+    beta_list = [20, 50, 100]
     #PCA_ = [True, False]
     PCA_ = [False]
     for PC in PCA_:
-        for par in params:
-            # does not work within function with parallel os.mkdir
-            os.mkdir(data_path + 'output')
-            Parallel(n_jobs=9)(delayed(segment_2)(raster_path, vector_geom=row, data_path_output=data_path,
-                                                    indexo=index, n_band=par, custom_subsetter=range(3,62),
-                                                                     MMU=0.01, PCA=PC) for index, row in gdf.iterrows())
+        for par in params_bands:
+            for betas in beta_list:
+                # does not work within function with parallel os.mkdir
+                os.mkdir(data_path + 'output')
+                Parallel(n_jobs=9)(delayed(segment_2)(raster_path, vector_geom=row, data_path_output=data_path,
+                                                        indexo=index, n_band=par, custom_subsetter=range(3,62),
+                                                      beta_coef=betas, beta_jump=1, MMU=0.01,
+                                                      PCA=PC) for index, row in gdf.iterrows())
 
-            joined = join_shapes_gpd(data_path + 'output/', own_segmentation=True)
+                joined = join_shapes_gpd(data_path + 'output/', own_segmentation=True)
 
-            if os.path.exists(data_path + 'joined'):
-                print('output directory already exists')
+                if os.path.exists(data_path + 'joined'):
+                    print('output directory already exists')
 
-            else:
-                os.mkdir(data_path + 'joined')
+                else:
+                    os.mkdir(data_path + 'joined')
 
-            field_counter = "{}{}{}{}".format(str(PC), "_", str(par), "_")
-            print(field_counter)
-            joined.to_file(data_path + 'joined/joined_' +  field_counter + '.shp')
-            shutil.rmtree(data_path + 'output/')
+                field_counter = "{}{}{}{}{}{}".format(str(PC), "_", str(par), "_", str(betas), '_')
+                print(field_counter)
+                joined.to_file(data_path + 'joined/joined_' +  field_counter + '.shp')
+                shutil.rmtree(data_path + 'output/')
 
     """
     # drop cluster number 0, which is all no grassland polygons
