@@ -26,26 +26,12 @@ def Shape_finder(input_path):
     return file_path_raster
 
 
-def Tif_finder(input_path):
+def Tif_finder(input_path, custom_search_string=".*[t][i][f]{1,2}$"):
     data_path_input = input_path
     file_path_raster = []
     for root, dirs, files in os.walk(data_path_input, topdown=True):
         for file in files:
-            if re.match(".*[t][i][f]{1,2}$", file):
-                file_path_raster.append(str(root + file))
-            else:
-                continue
-    return file_path_raster
-
-
-def Tif_finder(input_path):
-    data_path_input = input_path
-    file_path_raster = []
-    for root, dirs, files in os.walk(data_path_input, topdown=True):
-        #dirs[:] = [d for d in dirs if d in folders_BRB]
-
-        for file in files:
-            if re.match(".*[t][i][f]{1,2}$", file):
+            if re.match(custom_search_string, file):
                 file_path_raster.append(str(root + file))
             else:
                 continue
@@ -201,7 +187,6 @@ def prepare_data(raster_l, vector_geom, custom_subsetter=range(5,65), n_band=11,
                 # selects bands which have only valid pixels
                 arg_10 = select_bands_sd(out_image_nan, max_valid_pixels_=max_valid_pixel)
 
-
                 im = scaled_shaped[:, :, arg_10]
                 im[im == 0] = np.nan
                 scaled_arg_2d = np.reshape(im, (im.shape[0] * im.shape[1], len(arg_10)))
@@ -233,3 +218,29 @@ def prepare_data(raster_l, vector_geom, custom_subsetter=range(5,65), n_band=11,
     except:
         print('Maybe input shapes did not overlap')
         return None, None, None, None
+
+import datetime
+
+
+def Open_raster_add_meta():
+    inputFile = r'G:/_ProjectsII/Grassland/temp/temp_Marcel/mowingDetection/Input/Radolan/24hsum/Radolan_preSar_24h_sum.bsq'
+    ds = openRasterDataset(inputFile)
+
+    dateStrs = []
+    decDates =[]
+
+    for band in ds.bands():
+        dateStr = band.metadataItem(key='Date', domain='FORCE', dtype=str)[0:10]
+        year = dateStr[0:4]
+        month = dateStr[5:7]
+        day = dateStr[8:10]
+        date = datetime.datetime(np.int(year), np.int(month), np.int(day))
+        decDate = (date.timetuple().tm_yday - 1) / 365
+        dateStrs.append(dateStr)
+        decDates.append(str(np.round(decDate + 2018, 3)))
+
+    ds = gdal.Open(inputFile)
+    ds.SetMetadataItem('names', '{EVI}', 'TIMESERIES')
+    ds.SetMetadataItem('dates', '{'+ str(', '.join(dateStrs)) + '}', 'TIMESERIES')
+    ds.SetMetadataItem('wavelength', '{'+ str(', '.join(decDates)) + '}', 'TIMESERIES')
+    ds = None

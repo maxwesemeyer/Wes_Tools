@@ -130,6 +130,7 @@ def segment_2(string_to_raster, vector_geom, indexo=np.random.randint(0, 100000)
         return
     ############################################################
     n_class = 10
+    print(three_d_image.shape, two_d_im_pca.shape)
     # old 4, 3, 4, 6 for MA now 10
     mino = bayseg.bic(two_d_im_pca, n_class)
     # mino = 4

@@ -5,9 +5,9 @@ from joblib import Parallel, delayed
 from osgeo import gdal
 import re
 import rasterio
+from .__utils import *
 
-
-def create_stack(path_to_overlapping_rasters, n_bands=70):
+def create_stack(path_to_overlapping_rasters, name_output_stack, n_bands=70, custom_subsetter=range(1,70)):
     """
     not finished yet...
     :param path_to_overlapping_rasters: list of paths to rasters
@@ -21,16 +21,16 @@ def create_stack(path_to_overlapping_rasters, n_bands=70):
         meta = src0.meta
 
     # Update meta to reflect the number of layers
-    meta.update(count = len(file_list)*n_bands)
+    meta.update(count=len(file_list)*n_bands)
 
     # Read each layer and write it to stack
     id_counter = 1
-    with rasterio.open('Z:/lower_saxony_sentinel2_TSA_coreg/X0061_Y0046/stack.tif', 'w', **meta) as dst:
+    with rasterio.open(name_output_stack, 'w', **meta) as dst:
         for id, layer in enumerate(file_list, start=1):
             print(id, layer)
 
             with rasterio.open(layer) as src1:
-                for i in range(1,35):
+                for i in custom_subsetter:
                     print(i)
                     dst.write_band(id_counter, src1.read(i))
                     id_counter += 1
@@ -65,6 +65,7 @@ folders_BRB = {"X0065_Y0040", "X0065_Y0041", "X0066_Y0040", "X0066_Y0041", "X006
                "X0071_Y0040", "X0071_Y0041", "X0071_Y0042", "X0071_Y0043", "X0071_Y0044", "X0071_Y0045", "X0071_Y0046",
                "X0071_Y0047", "X0072_Y0040", "X0072_Y0042", "X0072_Y0043", "X0072_Y0044", "X0072_Y0045", "X0072_Y0046",
                "X0072_Y0047", "X0073_Y0044", "X0073_Y0045", "X0073_Y0046"}
+"""
 data_path_input = 'Z:/'
 # find all files in the given directory containing either MODIS or bsq
 file_path_raster = []
@@ -158,7 +159,7 @@ data_path_input = 'O:/Student_Data/Wesemeyer/Master/results'
 data_path_input = 'Z:/lower_saxony_sentinel2_TSA_coreg/X0061_Y0046/'
 file_path_raster = Tif_finder(data_path_input)
 
-
+"""
 
 
 
