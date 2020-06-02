@@ -19,19 +19,19 @@ if __name__ == '__main__':
     data_path = 'X:/temp/temp_Max/Data/'
     data_patg_alt = 'X:/SattGruen/Analyse/GLSEG/Raster'
     raster_path = "X:/SattGruen/Analyse/GLSEG/Raster/landsat_sentinel/X0068_Y0042/stacked.tif"
-    vector_path = data_path + 'Vector/dissolved_paulinaue_3035_parcels.gpkg'
+    vector_path = data_path + 'Vector/paulinaue_bwrt_diss_parcels_3035.shp'
 
 
 
     gdf = gpd.GeoDataFrame(pd.concat([gpd.read_file(vector_path)], ignore_index=True),
                            crs=gpd.read_file(vector_path).crs)
     #params_bands = [2, 3, 7, 11, 100]
-    covs = [1]
+    covs = [1, 2, 5]
     # best set of parameters so far: no PCA, all available bands and Beta=20;
     # according to Liu: no PCA, 11 bands, Beta=100
     #PCA_ = [True, False]
     PCA_ = [False]
-    params_bands = [20, 30]
+    params_bands = [3, 11, 21, 31]
     for PC in PCA_:
         for par in params_bands:
             for betas in covs:
@@ -39,9 +39,9 @@ if __name__ == '__main__':
                 os.mkdir(data_path + 'output')
                 #set_global_Cnn_variables(bands=par, convs=betas)
 
-                Parallel(n_jobs=9)(delayed(segment_2)(raster_path, vector_geom=row, data_path_output=data_path,
+                Parallel(n_jobs=3)(delayed(segment_cnn)(raster_path, vector_geom=row, data_path_output=data_path,
                                                       indexo=index, n_band=par, custom_subsetter=range(1, 500),
-                                                        MMU=0.01, beta_coef=100, beta_jump=1,
+                                                        MMU=0.01, lr_var=0.1, convs=betas,
                                                       PCA=PC) for index, row in gdf.iterrows())
 
                 """
@@ -61,7 +61,7 @@ if __name__ == '__main__':
 
                 field_counter = "{}{}{}{}{}{}".format(str(PC), "_", str(par), "_", str(betas), '_')
                 print(field_counter)
-                joined.to_file(data_path + 'joined/bayseg_all' +  field_counter + '.shp')
+                joined.to_file(data_path + 'joined/cnn_bwrt' +  field_counter + '.shp')
                 shutil.rmtree(data_path + 'output/')
 
     """
