@@ -3,9 +3,38 @@ from shapely.geometry import Polygon, shape
 import numpy as np
 
 
+def accuracy_prep(reference_poly, segmentation_poly):
+    with fiona.open(reference_poly) as shapefile:
+        shapes_ref = [feature["geometry"] for feature in shapefile]
+    with fiona.open(segmentation_poly) as shapefile:
+        shapes_seg = []
+        feature_list = []
+        for features in shapefile:
+            if features["properties"]['Cluster_nb'] != 0 and features["properties"]['field_nb'] != None:
+                shapes_seg.append(features["geometry"])
+                values_view = features["properties"].values()
+                value_iterator = iter(values_view)
+                first_value = next(value_iterator)
+                feature_list.append(first_value)
+            else:
+                continue
+    return shapes_ref, shapes_seg, feature_list
+
+
 class Accuracy_Assessment:
 
-    def Clinton(reference_poly, segmentation_poly):
+    def __init__(self, reference_poly, segmentation_poly, acc_type='Liu'):
+        self.shapes_ref, self.shapes_seg, self.feature_list = accuracy_prep(reference_poly, segmentation_poly)
+        if acc_type == 'Clinton':
+            self.Clinton(self.shapes_ref, self.shapes_seg, self.feature_list)
+            print('Clinton')
+        elif acc_type == 'Liu':
+            print('Liu')
+            self.Liu(self.shapes_ref, self.shapes_seg, self.feature_list)
+        else:
+            print('using IUC')
+
+    def Clinton(shapes_ref, shapes_seg, feature_list):
         """
         This functions calculates Oversegmentation, Undersegmentation and Overall accuracy of segmentation according to
         Clinton et al. 2010
@@ -13,21 +42,6 @@ class Accuracy_Assessment:
         :param segmentation_poly: path to input shapefile
         :return: accuracy values Os, Us, Total
         """
-
-        with fiona.open(reference_poly) as shapefile:
-            shapes_ref = [feature["geometry"] for feature in shapefile]
-        with fiona.open(segmentation_poly) as shapefile:
-            shapes_seg = []
-            feature_list = []
-            for features in shapefile:
-                if features["properties"]['Cluster_nb'] != 0 and features["properties"]['field_nb'] != None:
-                    shapes_seg.append(features["geometry"])
-                    values_view = features["properties"].values()
-                    value_iterator = iter(values_view)
-                    first_value = next(value_iterator)
-                    feature_list.append(first_value)
-                else:
-                    continue
 
         segment_counter = 1
         # store values for output
@@ -46,7 +60,6 @@ class Accuracy_Assessment:
 
             for shp_ref in shapes_ref:
                 shp_seg = shape(shp_seg)
-                A_int = shp_seg.intersection(shape(shp_ref)).area
                 try:
                     A_int = shp_seg.intersection(shape(shp_ref)).area
                 except:
@@ -74,7 +87,7 @@ class Accuracy_Assessment:
 
         return US_out, OS_out, Overall_out
 
-    def Liu(reference_poly, segmentation_poly):
+    def Liu(shapes_ref, shapes_seg, feature_list):
         """
         Number of Segments Ratio; See Liu et al. 2012 or
         "A review of accuracy assessment for object-based image analysis: From
@@ -84,10 +97,7 @@ class Accuracy_Assessment:
         :param segmentation_poly: path to input shapefile
         :return:
         """
-        with fiona.open(reference_poly) as shapefile:
-            shapes_ref = [feature["geometry"] for feature in shapefile]
-        with fiona.open(segmentation_poly) as shapefile:
-            shapes_seg = [feature["geometry"] for feature in shapefile]
+
         # store values for output
         PSE_list = []
 
@@ -137,4 +147,59 @@ class Accuracy_Assessment:
         ED2 = np.sqrt((PSE_arr) ** 2 + (NSR_total) ** 2)
 
         return PSE_arr, NSR_total, ED2
+
+
+    def IUC(shapes_ref, shapes_seg, feature_list):
+        """
+
+
+        :param reference_poly: path to input shapefile
+        :param segmentation_poly: path to input shapefile
+        :return:
+        """
+
+        # store values for output
+        IUC_list = []
+
+        for shp_seg in shapes_seg:
+            # temp lists
+
+            Union_temp = []
+            intersecz_size = []
+
+            for shp_ref in shapes_ref:
+                shp_seg = shape(shp_seg)
+                try:
+                    A_int = shp_seg.intersection(shape(shp_ref)).area
+                except:
+                    # TODO: error due to invalid geometry
+                    print('Some error I need to figure out; Invalid geometry')
+                    A_int = 0
+                A_ref = shape(shp_ref).area
+                A_seg = shp_seg.area
+
+                # areal_overlap_based_criteria =
+                # the area of intersection between a reference polygon and the candidate segment is more than half the area of
+                # either the reference polygon or the candidate segment
+                if A_int == 0:
+                    continue
+                elif A_int > A_ref / 2 or A_int > A_seg / 2:
+                    Union_temp.append(shp_seg.union(shp_ref))
+                    intersecz_size.append(A_int)
+
+
+                else:
+                    # print(A_int, A_ref / 2, 'second condition', A_int , A_seg / 2)
+                    continue
+            if np.any(np.array(intersecz_size) > 1):
+
+                IUC_list.append(IUC)
+            else:
+                # assuming max error
+                IUC_list.append(0)
+
+        IUC_arr = np.array(IUC_list)
+
+
+        return IUC_arr
 
