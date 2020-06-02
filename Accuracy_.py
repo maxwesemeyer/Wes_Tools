@@ -23,18 +23,10 @@ def accuracy_prep(reference_poly, segmentation_poly):
 
 class Accuracy_Assessment:
 
-    def __init__(self, reference_poly, segmentation_poly, acc_type='Liu'):
+    def __init__(self, reference_poly, segmentation_poly):
         self.shapes_ref, self.shapes_seg, self.feature_list = accuracy_prep(reference_poly, segmentation_poly)
-        if acc_type == 'Clinton':
-            self.Clinton(self.shapes_ref, self.shapes_seg, self.feature_list)
-            print('Clinton')
-        elif acc_type == 'Liu':
-            print('Liu')
-            self.Liu(self.shapes_ref, self.shapes_seg, self.feature_list)
-        else:
-            print('using IUC')
 
-    def Clinton(shapes_ref, shapes_seg, feature_list):
+    def Clinton(self):
         """
         This functions calculates Oversegmentation, Undersegmentation and Overall accuracy of segmentation according to
         Clinton et al. 2010
@@ -48,7 +40,7 @@ class Accuracy_Assessment:
         US_out = []
         OS_out = []
         Overall_out = []
-        for shp_seg in shapes_seg:
+        for shp_seg in self.shapes_seg:
             #print(feature_list[segment_counter - 1])
             segment_counter += 1
             # save intersect acrea to select the biggest
@@ -58,7 +50,7 @@ class Accuracy_Assessment:
             OS_temp = []
             Overall_temp = []
 
-            for shp_ref in shapes_ref:
+            for shp_ref in self.shapes_ref:
                 shp_seg = shape(shp_seg)
                 try:
                     A_int = shp_seg.intersection(shape(shp_ref)).area
@@ -87,7 +79,7 @@ class Accuracy_Assessment:
 
         return US_out, OS_out, Overall_out
 
-    def Liu(shapes_ref, shapes_seg, feature_list):
+    def Liu(self):
         """
         Number of Segments Ratio; See Liu et al. 2012 or
         "A review of accuracy assessment for object-based image analysis: From
@@ -101,13 +93,13 @@ class Accuracy_Assessment:
         # store values for output
         PSE_list = []
 
-        for shp_seg in shapes_seg:
+        for shp_seg in self.shapes_seg:
             # temp lists
             A_seg_list_temp = []
             Area_ref_temp = []
             intersecz_size = []
 
-            for shp_ref in shapes_ref:
+            for shp_ref in self.shapes_ref:
                 shp_seg = shape(shp_seg)
                 try:
                     A_int = shp_seg.intersection(shape(shp_ref)).area
@@ -140,8 +132,8 @@ class Accuracy_Assessment:
                 PSE_list.append(1)
 
         PSE_arr = np.array(PSE_list)
-        N_ref = len(shapes_ref)
-        N_map = len(shapes_seg)
+        N_ref = len(self.shapes_ref)
+        N_map = len(self.shapes_seg)
 
         NSR_total = abs(N_ref - N_map) / N_ref
         ED2 = np.sqrt((PSE_arr) ** 2 + (NSR_total) ** 2)
@@ -149,10 +141,8 @@ class Accuracy_Assessment:
         return PSE_arr, NSR_total, ED2
 
 
-    def IUC(shapes_ref, shapes_seg, feature_list):
+    def IUC(self):
         """
-
-
         :param reference_poly: path to input shapefile
         :param segmentation_poly: path to input shapefile
         :return:
@@ -161,16 +151,17 @@ class Accuracy_Assessment:
         # store values for output
         IUC_list = []
 
-        for shp_seg in shapes_seg:
+        for shp_seg in self.shapes_seg:
             # temp lists
 
             Union_temp = []
             intersecz_size = []
 
-            for shp_ref in shapes_ref:
+            for shp_ref in self.shapes_ref:
                 shp_seg = shape(shp_seg)
                 try:
                     A_int = shp_seg.intersection(shape(shp_ref)).area
+                    A_un = shp_seg.union(shape(shp_ref)).area
                 except:
                     # TODO: error due to invalid geometry
                     print('Some error I need to figure out; Invalid geometry')
@@ -184,15 +175,15 @@ class Accuracy_Assessment:
                 if A_int == 0:
                     continue
                 elif A_int > A_ref / 2 or A_int > A_seg / 2:
-                    Union_temp.append(shp_seg.union(shp_ref))
+                    Union_temp.append(A_un)
                     intersecz_size.append(A_int)
-
-
                 else:
                     # print(A_int, A_ref / 2, 'second condition', A_int , A_seg / 2)
                     continue
             if np.any(np.array(intersecz_size) > 1):
 
+                index = np.argmax(np.array(intersecz_size))
+                IUC = np.array(intersecz_size[index])/np.array(Union_temp)[index]
                 IUC_list.append(IUC)
             else:
                 # assuming max error

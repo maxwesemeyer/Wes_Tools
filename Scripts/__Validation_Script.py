@@ -35,11 +35,14 @@ if __name__ == '__main__':
     clinton_list = []
 
     for shapes in list_of_shapes:
-
+        pse = Accuracy_Assessment(vector_path, shapes).IUC()
+        print(pse)
+        pse_list.append(np.mean(np.array(pse)))
         try:
-            pse, nsr, ed2 = Accuracy_Assessment.Liu(vector_path, shapes)
-            print(shapes, np.mean(np.array(ed2)))
-            pse_list.append(np.mean(np.array(pse)))
+            #pse, nsr, ed2 = Accuracy_Assessment.Liu(vector_path, shapes)
+            print('lfk')
+
+
         except:
             pse_list.append(10)
             print('for some reason not working')
