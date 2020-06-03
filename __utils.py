@@ -32,7 +32,7 @@ def Tif_finder(input_path, custom_search_string=".*[t][i][f]{1,2}$"):
     for root, dirs, files in os.walk(data_path_input, topdown=True):
         for file in files:
             if re.match(custom_search_string, file):
-                file_path_raster.append(str(root + file))
+                file_path_raster.append(str(root + '/' + file))
             else:
                 continue
     return file_path_raster

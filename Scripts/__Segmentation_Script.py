@@ -16,9 +16,6 @@ from Wes_Tools.__Join_results import *
 
 
 if __name__ == '__main__':
-    data_path = "X:/SattGruen/Analyse/GLSEG/Raster/landsat_sentinel/X0068_Y0042/"
-    list_raster = Tif_finder(data_path, "^2016.*[S][.][t][i][f]{1,2}$")
-    print(list_raster)
 
     data_path = 'X:/temp/temp_Max/Data/'
     data_patg_alt = 'X:/SattGruen/Analyse/GLSEG/Raster/landsat_sentinel/X0068_Y0042/2016-2019_001-365_LEVEL4_TSA_LNDLG_NDV_TSS.tif'
