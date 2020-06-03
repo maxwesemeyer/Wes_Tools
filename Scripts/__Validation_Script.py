@@ -18,17 +18,14 @@ from Wes_Tools.create_vrt import *
 
 if __name__ == '__main__':
 
-
-
-
     data_path = 'X:/temp/temp_Max/Data/'
     data_patg_alt = 'X:/SattGruen/Analyse/GLSEG/Raster'
     raster_path = 'X:/SattGruen/Analyse/GLSEG/Raster/X0068_Y0042/2018-2018_001-365_LEVEL4_TSA_SEN2L_NDV_TSS.tif'
-    #vector_path = data_path + 'Vector/Bewrt_paulinaue_3035.gpkg'
-    vector_path = data_path + 'Vector/Paulienenaue_TF.shp'
+    vector_path = data_path + 'Vector/Bewrt_paulinaue_3035.gpkg'
+    #vector_path = data_path + 'Vector/Paulienenaue_TF.shp'
 
 
-    list_of_shapes = Shape_finder(data_path + 'joined/')
+    list_of_shapes = Shape_finder(data_path + 'joined_bwrt/')
     print(list_of_shapes)
     pse_list = []
     overall_list = []
@@ -49,8 +46,14 @@ if __name__ == '__main__':
 
     print(np.argmin(np.array(pse_list)))
 
-    print(np.array(pse_list), np.argmin(np.array(pse_list)))
-    print('According to PSE (ED2)', list_of_shapes[np.argmin(np.array(pse_list))], 'with a score of ', np.min(np.array(pse_list)))
+    print(np.array(pse_list), np.argmax(np.array(pse_list)))
+    print('According to PSE (ED2)', list_of_shapes[np.argmax(np.array(pse_list))], 'with a score of ', np.max(np.array(pse_list)))
+    #plot_shapefile(list_of_shapes[np.argmax(np.array(pse_list))], raster_path)
+    #plot_shapefile(list_of_shapes[np.argmax(np.array(pse_list))], raster_path, error_plot=True)
+    plot_shapefile(data_path+'Vector/Paulienenaue_TF.shp', raster_path, error_plot=True)
+    plot_shapefile(data_path+'Vector/Paulienenaue_TF.shp', raster_path)
+
+
     #print('According to Clinton', list_of_shapes[np.argmin(np.array(clinton_list))], 'with a score of ', np.min(np.array(clinton_list)))
 
 
