@@ -51,13 +51,10 @@ class Accuracy_Assessment:
             Overall_temp = []
 
             for shp_ref in self.shapes_ref:
-                shp_seg = shape(shp_seg)
-                try:
-                    A_int = shp_seg.intersection(shape(shp_ref)).area
-                except:
-                    # TODO: error due to invalid geometry
-                    print('Some error I need to figure out; Invalid geometry')
-                    A_int = 0
+                # buffer with zero distance to avoid self intersection error
+                shp_seg = shape(shp_seg).buffer(distance=0)
+                A_int = shp_seg.intersection(shape(shp_ref)).area
+
                 if A_int == 0:
                     continue
                 else:
@@ -100,13 +97,9 @@ class Accuracy_Assessment:
             intersecz_size = []
 
             for shp_ref in self.shapes_ref:
-                shp_seg = shape(shp_seg)
-                try:
-                    A_int = shp_seg.intersection(shape(shp_ref)).area
-                except:
-                    # TODO: error due to invalid geometry
-                    print('Some error I need to figure out; Invalid geometry')
-                    A_int = 0
+                # buffer with zero distance to avoid self intersection error
+                shp_seg = shape(shp_seg).buffer(distance=0)
+                A_int = shp_seg.intersection(shape(shp_ref)).area
                 A_ref = shape(shp_ref).area
                 A_seg = shp_seg.area
 
@@ -141,7 +134,7 @@ class Accuracy_Assessment:
         return PSE_arr, NSR_total, ED2
 
 
-    def IUC(self):
+    def IoU(self):
         """
         :param reference_poly: path to input shapefile
         :param segmentation_poly: path to input shapefile
@@ -150,36 +143,23 @@ class Accuracy_Assessment:
 
         # store values for output
         IUC_list = []
-
+        feature_counter = 0
         for shp_seg in self.shapes_seg:
             # temp lists
-
+            feature_counter += 1
             Union_temp = []
             intersecz_size = []
 
             for shp_ref in self.shapes_ref:
-                shp_seg = shape(shp_seg)
-                try:
-                    A_int = shp_seg.intersection(shape(shp_ref)).area
-                    A_un = shp_seg.union(shape(shp_ref)).area
-                except:
-                    # TODO: error due to invalid geometry
-                    print('Some error I need to figure out; Invalid geometry')
-                    A_int = 0
-                A_ref = shape(shp_ref).area
-                A_seg = shp_seg.area
-
-                # areal_overlap_based_criteria =
-                # the area of intersection between a reference polygon and the candidate segment is more than half the area of
-                # either the reference polygon or the candidate segment
+                # buffer with zero distance to avoid self intersection error
+                shp_seg = shape(shp_seg).buffer(distance=0)
+                A_int = shp_seg.intersection(shape(shp_ref)).area
+                A_un = shp_seg.union(shape(shp_ref)).area
                 if A_int == 0:
                     continue
-                elif A_int > A_ref / 2 or A_int > A_seg / 2:
+                else:
                     Union_temp.append(A_un)
                     intersecz_size.append(A_int)
-                else:
-                    # print(A_int, A_ref / 2, 'second condition', A_int , A_seg / 2)
-                    continue
             if np.any(np.array(intersecz_size) > 1):
 
                 index = np.argmax(np.array(intersecz_size))
@@ -188,9 +168,6 @@ class Accuracy_Assessment:
             else:
                 # assuming max error
                 IUC_list.append(0)
-
         IUC_arr = np.array(IUC_list)
-
-
         return IUC_arr
 

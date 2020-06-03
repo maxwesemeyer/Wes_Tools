@@ -32,22 +32,16 @@ if __name__ == '__main__':
     clinton_list = []
 
     for shapes in list_of_shapes:
-        pse = Accuracy_Assessment(vector_path, shapes).IUC()
-        print(pse)
-        pse_list.append(np.mean(np.array(pse)))
-        try:
-            #pse, nsr, ed2 = Accuracy_Assessment.Liu(vector_path, shapes)
-            print('lfk')
+        #pse = Accuracy_Assessment(vector_path, shapes).IoU()
+        pse, nsr, ed2 = Accuracy_Assessment(vector_path, shapes).Liu()
+        print(ed2)
+        pse_list.append(np.mean(np.array(ed2)))
 
-
-        except:
-            pse_list.append(10)
-            print('for some reason not working')
 
     print(np.argmin(np.array(pse_list)))
 
-    print(np.array(pse_list), np.argmax(np.array(pse_list)))
-    print('According to PSE (ED2)', list_of_shapes[np.argmax(np.array(pse_list))], 'with a score of ', np.max(np.array(pse_list)))
+    print(np.array(pse_list), np.argmin(np.array(pse_list)))
+    print('According to PSE (ED2)', list_of_shapes[np.argmin(np.array(pse_list))], 'with a score of ', np.min(np.array(pse_list)))
     #plot_shapefile(list_of_shapes[np.argmax(np.array(pse_list))], raster_path)
     #plot_shapefile(list_of_shapes[np.argmax(np.array(pse_list))], raster_path, error_plot=True)
     plot_shapefile(data_path+'Vector/Paulienenaue_TF.shp', raster_path, error_plot=True)
