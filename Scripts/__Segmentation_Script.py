@@ -16,9 +16,15 @@ from Wes_Tools.__Join_results import *
 
 
 if __name__ == '__main__':
+    data_path = "X:/SattGruen/Analyse/GLSEG/Raster/landsat_sentinel/X0068_Y0042/"
+    list_raster = Tif_finder(data_path, "^2016.*[S][.][t][i][f]{1,2}$")
+    print(list_raster)
+
     data_path = 'X:/temp/temp_Max/Data/'
     data_patg_alt = 'X:/SattGruen/Analyse/GLSEG/Raster/landsat_sentinel/X0068_Y0042/2016-2019_001-365_LEVEL4_TSA_LNDLG_NDV_TSS.tif'
     raster_path = "X:/SattGruen/Analyse/GLSEG/Raster/landsat_sentinel/X0068_Y0042/stacked.tif"
+    # 2016-2019_001-365_LEVEL4_TSA_LNDLG_GRN_TSS
+    raster_path = "X:/SattGruen/Analyse/GLSEG/Raster/landsat_sentinel/X0068_Y0042/2016-2019_001-365_LEVEL4_TSA_LNDLG_GRN_TSS.tif"
     vector_path = data_path + 'Vector/paulinaue_bwrt_diss_parcels_3035.shp'
 
 
@@ -26,23 +32,23 @@ if __name__ == '__main__':
     gdf = gpd.GeoDataFrame(pd.concat([gpd.read_file(vector_path)], ignore_index=True),
                            crs=gpd.read_file(vector_path).crs)
     #params_bands = [2, 3, 7, 11, 100]
-    covs = [1, 2, 5]
+    covs = [1]
     # best set of parameters so far: no PCA, all available bands and Beta=20;
     # according to Liu: no PCA, 11 bands, Beta=100
     #PCA_ = [True, False]
     PCA_ = [False]
     params_bands = [3, 11, 21, 31]
-    """
+
     for PC in PCA_:
         for par in params_bands:
             for betas in covs:
                 # does not work within function with parallel os.mkdir
                 os.mkdir(data_path + 'output')
                 #set_global_Cnn_variables(bands=par, convs=betas)
-
-                Parallel(n_jobs=3)(delayed(segment_cnn)(raster_path, vector_geom=row, data_path_output=data_path,
-                                                      indexo=index, n_band=par, custom_subsetter=range(1, 500),
-                                                        MMU=0.01, lr_var=0.1, convs=betas,
+                # old subsetter range(1,500)
+                Parallel(n_jobs=3)(delayed(segment_2)(raster_path, vector_geom=row, data_path_output=data_path,
+                                                      indexo=index, n_band=par, custom_subsetter=range(90,165),
+                                                        MMU=0.01, beta_coef=20, beta_jump=1,
                                                       PCA=PC) for index, row in gdf.iterrows())
 
                
@@ -56,10 +62,10 @@ if __name__ == '__main__':
 
                 field_counter = "{}{}{}{}{}{}".format(str(PC), "_", str(par), "_", str(betas), '_')
                 print(field_counter)
-                joined.to_file(data_path + 'joined/cnn_bwrt' +  field_counter + '.shp')
+                joined.to_file(data_path + 'joined/bayseg_bwrt_test' +  field_counter + '.shp')
                 shutil.rmtree(data_path + 'output/')
     
-    """
+
     gdf = gpd.GeoDataFrame(pd.concat([gpd.read_file('X:/temp/temp_Max/Data/joined_bwrt//bayseg_bwrtFalse_20_1_.shp')], ignore_index=True),
                            crs=gpd.read_file('X:/temp/temp_Max/Data/joined_bwrt//bayseg_bwrtFalse_20_1_.shp').crs)
     # drop cluster number 0, which is all no grassland polygons

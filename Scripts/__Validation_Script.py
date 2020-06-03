@@ -53,7 +53,7 @@ if __name__ == '__main__':
 
 """
 data_path = "X:/SattGruen/Analyse/GLSEG/Raster/landsat_sentinel/X0068_Y0042/"
-    list_raster = Tif_finder(data_path, "^2016.*[S][.][t][i][f]{1,2}$")
-    print(list_raster)
+list_raster = Tif_finder(data_path, "^2016.*[S][.][t][i][f]{1,2}$")
+print(list_raster)
     create_stack(list_raster, data_path + 'stacked.tif', n_bands=75 ,custom_subsetter=range(90,165))
 """
