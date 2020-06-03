@@ -19,10 +19,12 @@ if __name__ == '__main__':
 
     data_path = 'X:/temp/temp_Max/Data/'
     data_patg_alt = 'X:/SattGruen/Analyse/GLSEG/Raster/landsat_sentinel/X0068_Y0042/2016-2019_001-365_LEVEL4_TSA_LNDLG_NDV_TSS.tif'
-    raster_path = "X:/SattGruen/Analyse/GLSEG/Raster/landsat_sentinel/X0068_Y0042/stacked.tif"
+
     # 2016-2019_001-365_LEVEL4_TSA_LNDLG_GRN_TSS
-    raster_path = "X:/SattGruen/Analyse/GLSEG/Raster/landsat_sentinel/X0068_Y0042/2016-2019_001-365_LEVEL4_TSA_LNDLG_GRN_TSS.tif"
+    raster_path = "X:/SattGruen/Analyse/GLSEG/Raster/landsat_sentinel/vrt/vrt_global.vrt"
     vector_path = data_path + 'Vector/paulinaue_bwrt_diss_parcels_3035.shp'
+    vector_path = data_path + 'Vector/Ribbeck_grassland_LAEA_europe.shp'
+
 
 
 
@@ -33,8 +35,8 @@ if __name__ == '__main__':
     # best set of parameters so far: no PCA, all available bands and Beta=20;
     # according to Liu: no PCA, 11 bands, Beta=100
     #PCA_ = [True, False]
-    PCA_ = [False]
-    params_bands = [3, 11, 21, 31]
+    PCA_ = [True]
+    params_bands = [2, 3, 11, 21, 31]
 
     for PC in PCA_:
         for par in params_bands:
@@ -44,7 +46,7 @@ if __name__ == '__main__':
                 #set_global_Cnn_variables(bands=par, convs=betas)
                 # old subsetter range(1,500)
                 Parallel(n_jobs=3)(delayed(segment_2)(raster_path, vector_geom=row, data_path_output=data_path,
-                                                      indexo=index, n_band=par, custom_subsetter=range(90,165),
+                                                      indexo=index, n_band=par, custom_subsetter=range(1,300),
                                                         MMU=0.01, beta_coef=20, beta_jump=1,
                                                       PCA=PC) for index, row in gdf.iterrows())
 
@@ -63,6 +65,7 @@ if __name__ == '__main__':
                 shutil.rmtree(data_path + 'output/')
     
 
+"""
     gdf = gpd.GeoDataFrame(pd.concat([gpd.read_file('X:/temp/temp_Max/Data/joined_bwrt//bayseg_bwrtFalse_20_1_.shp')], ignore_index=True),
                            crs=gpd.read_file('X:/temp/temp_Max/Data/joined_bwrt//bayseg_bwrtFalse_20_1_.shp').crs)
     # drop cluster number 0, which is all no grassland polygons
@@ -88,3 +91,4 @@ if __name__ == '__main__':
     #gpd_merged = gpd.GeoDataFrame(merged, crs="EPSG:3035", geometry=merged[0])
     #gpd_merged.to_file(data_path + 'merged_bayseg_raster.shp')
     merged.to_csv(data_path + 'merged_bayseg_raster.csv')
+"""
