@@ -13,6 +13,7 @@ import rasterio.mask
 import matplotlib.pyplot as plt
 
 
+
 def Shape_finder(input_path):
     # Alternative...
     #print(glob.glob(data_path + '*.shp'))
@@ -150,10 +151,8 @@ def prepare_data(raster_l, vector_geom, custom_subsetter=range(5,65), n_band=11,
         with rasterio.open(raster_l) as src:
             out_image, out_transform = rasterio.mask.mask(src, shp, crop=True, nodata=0)
             mask = create_mask_from_ndim(out_image)
-            out_image = out_image + 100000
+            #out_image = out_image + 100000
             out_image = out_image*mask
-            plt.imshow(mask)
-            plt.show()
             gt_gdal = Affine.to_gdal(out_transform)
             #################################
             out_meta = src.meta
@@ -174,14 +173,13 @@ def prepare_data(raster_l, vector_geom, custom_subsetter=range(5,65), n_band=11,
                 out_image_nan = out_image.copy().astype(dtype=np.float)
                 out_image_nan[w] = np.nan
 
-
-
                 three_band_img = out_image_nan
                 img1 = np.moveaxis(three_band_img, 0, 2)
 
                 re = np.reshape(img1, (img1.shape[0] * img1.shape[1], img1.shape[2]))
                 # re_scale = RobustScaler(quantile_range=(0.8, 1)).fit_transform(re)
-                scaled = (MinMaxScaler(feature_range=(0, 255)).fit_transform(re))
+                #scaled = (MinMaxScaler(feature_range=(0, 255)).fit_transform(re))
+                scaled = re
                 scaled_shaped = np.reshape(scaled, (img1.shape))
                 # scaled_shaped = np.square(img1+10)
 
@@ -190,8 +188,7 @@ def prepare_data(raster_l, vector_geom, custom_subsetter=range(5,65), n_band=11,
                 scaled_shaped[np.where(scaled_shaped==0)] = np.nan
                 std_glob = np.nanstd(scaled_shaped, axis=(1, 2))
                 print('global:', sum(std_glob))
-                print(scaled_shaped)
-                arg_10 = select_bands_sd(out_image_nan, max_valid_pixels_=max_valid_pixel)
+                arg_10 = select_bands_sd(np.moveaxis(scaled_shaped, 2, 0), max_valid_pixels_=max_valid_pixel)
                 wh_nan = np.where(np.isnan(scaled_shaped))
                 scaled_shaped[wh_nan] = 0
 

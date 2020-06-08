@@ -18,7 +18,7 @@ from Wes_Tools.__Join_results import *
 if __name__ == '__main__':
 
     data_path = 'X:/temp/temp_Max/Data/'
-    data_patg_alt = 'X:/SattGruen/Analyse/GLSEG/Raster/landsat_sentinel/X0068_Y0042/2016-2019_001-365_LEVEL4_TSA_LNDLG_NDV_TSS.tif'
+    data_patg_alt = 'X:/SattGruen/Analyse/GLSEG/Raster/landsat_sentinel/vrt/vrt_global.vrt'
 
     # 2016-2019_001-365_LEVEL4_TSA_LNDLG_GRN_TSS
     #raster_path = "X:/SattGruen/Analyse/GLSEG/Raster/S-1/vrt/vrt_global.vrt"
@@ -26,7 +26,7 @@ if __name__ == '__main__':
     raster_path = "X:/SattGruen/Analyse/GLSEG/Raster/landsat_sentinel/vrt/vrt_global.vrt"
     #vector_path = data_path + 'Vector/paulinaue_bwrt_diss_parcels_3035.shp'
     vector_path = data_path + 'Vector/dissolved_paulinaue_3035_parcels.gpkg'
-    #vector_path = data_path + 'Vector/Ribbeck_grassland_LAEA_europe.shp'
+    vector_path = data_path + 'Vector/Ribbeck_grassland_LAEA_europe.shp'
 
     gdf = gpd.GeoDataFrame(pd.concat([gpd.read_file(vector_path)], ignore_index=True),
                            crs=gpd.read_file(vector_path).crs)
@@ -36,8 +36,8 @@ if __name__ == '__main__':
     # according to Liu: no PCA, 11 bands, Beta=100
     #PCA_ = [True, False]
     PCA_ = [False]
-    params_bands = [3,30, 50]
-
+    params_bands = [21, 31, 41]
+    #params_bands = [2, 3, 5, 7]
     for PC in PCA_:
         for par in params_bands:
             for betas in covs:
@@ -45,9 +45,10 @@ if __name__ == '__main__':
                 os.mkdir(data_path + 'output')
                 #set_global_Cnn_variables(bands=par, convs=betas)
                 # old subsetter range(1,500)
-                Parallel(n_jobs=5)(delayed(segment_2)(raster_path, vector_geom=row, data_path_output=data_path,
-                                                      indexo=index, n_band=par, custom_subsetter=range(1, 300),# custom_subsetter=range(90, 165), #custom_subsetter=range(1,392),
-                                                        MMU=0.01, beta_coef=50, beta_jump=1,
+                # 104 168 = April - Ende Oktober
+                Parallel(n_jobs=3)(delayed(segment_2)(data_patg_alt, vector_geom=row, data_path_output=data_path,
+                                                      indexo=index, n_band=par, custom_subsetter=range(1, 256), #custom_subsetter=range(1, 300),# #custom_subsetter=range(1,392),
+                                                        MMU=0.01, beta_coef=80, beta_jump=1,
                                                       PCA=PC) for index, row in gdf.iterrows())
 
                
@@ -61,7 +62,7 @@ if __name__ == '__main__':
 
                 field_counter = "{}{}{}{}{}{}".format(str(PC), "_", str(par), "_", str(betas), '_')
                 print(field_counter)
-                joined.to_file(data_path + 'joined/cnn_bwrt_S1' +  field_counter + '.shp')
+                joined.to_file(data_path + 'joined/bayseg_ribbeck_' +  field_counter + '.shp')
                 shutil.rmtree(data_path + 'output/')
     
 
@@ -91,4 +92,12 @@ if __name__ == '__main__':
     #gpd_merged = gpd.GeoDataFrame(merged, crs="EPSG:3035", geometry=merged[0])
     #gpd_merged.to_file(data_path + 'merged_bayseg_raster.shp')
     merged.to_csv(data_path + 'merged_bayseg_raster.csv')
+"""
+
+"""
+IDEAs: 
+
+define/find areas of no/low regrowth; the VI values in these areas can then be adapted
+first idea: find points below a NDVI value of ~0.5 then see if regrowth or not
+unsupervised video segmentation? 
 """

@@ -14,7 +14,7 @@ def nan_helper(y):
     return np.isnan(y), lambda z: z.nonzero()[0]
 
 
-def plot_shapefile(vector_data, raster_data, own_segmentation=False, error_plot=False):
+def plot_shapefile(vector_data, raster_data, own_segmentation=False, error_plot=False, custom_subsetter=range(1, 61)):
     # Create a ListedColormap with only the color green specified
     cmap = colors.ListedColormap(['green'])
     # Use the `set_bad` property of `colormaps` to set all the 'bad' data to red
@@ -58,7 +58,8 @@ def plot_shapefile(vector_data, raster_data, own_segmentation=False, error_plot=
 
         with rasterio.open(raster_) as src:
             out_image, out_transform = rasterio.mask.mask(src, [shp], crop=True)
-            out_image = out_image[range(35),:,:]
+            print(out_image.shape)
+            out_image = out_image[custom_subsetter,:,:]
             out_image = out_image.astype(dtype=np.float)
             out_image[out_image < 0] = np.nan
             print(out_image.shape)

@@ -23,7 +23,7 @@ if __name__ == '__main__':
                    "X0071_Y0047", "X0072_Y0040", "X0072_Y0042", "X0072_Y0043", "X0072_Y0044", "X0072_Y0045", "X0072_Y0046",
                    "X0072_Y0047", "X0073_Y0044", "X0073_Y0045", "X0073_Y0046"}
 
-    data_path_input = "X:/SattGruen/Analyse/GLSEG/Raster/S-1/"
+    data_path_input = "X:/SattGruen/Analyse/GLSEG/Raster/landsat_sentinel/"
     file_path_raster = Tif_finder(data_path_input, "^2016.*[S][.][t][i][f]{1,2}$")
     print(file_path_raster)
     data_path_vrt = data_path_input + 'vrt/'
@@ -40,7 +40,7 @@ if __name__ == '__main__':
     prec_mete = False
     smoist_mete = False
     spec_temp = True
-    """
+
     stacked_list = []
     for folder_BB in folders_BRB:
         spec_files_2018 = []
@@ -51,14 +51,15 @@ if __name__ == '__main__':
         spec_files_2018 = spec_files_2018 + glob.glob(env_folder + '\\*SW1_TSS.tif')
         if len(spec_files_2018) > 1:
             # TODO: create vrt stack instead of "real" stack
-            create_stack(spec_files_2018, env_folder + str(folder_BB) + '_stacked.tif', n_bands=75, custom_subsetter=range(90, 165))
-            stacked_list.append(env_folder + str(folder_BB) + '_stacked.tif')
+            name = env_folder + str(folder_BB) + 'Apr_Okt_stacked.tif'
+            create_stack(spec_files_2018, name, n_bands=64, custom_subsetter=range(104, 168 ))
+            stacked_list.append(name)
         else:
             pass
         
     vrt_options = gdal.BuildVRTOptions(separate=False)
     gdal.BuildVRT(data_path_vrt + 'vrt_global.vrt', stacked_list, options=vrt_options)
-    
+    """
     stacked_list = []
     for folder_BB in folders_BRB:
         spec_files_2018 = []
@@ -73,6 +74,7 @@ if __name__ == '__main__':
             pass
     vrt_options = gdal.BuildVRTOptions(separate=False)
     gdal.BuildVRT(data_path_vrt + 'vrt_global.vrt', stacked_list, options=vrt_options)
+    """
     """
     import rasterio
 
@@ -122,7 +124,7 @@ if __name__ == '__main__':
                     custom_subsetter = None
             src0 = None
             src1 = None
-
+"""
     """
     data_path = "X:/SattGruen/Analyse/GLSEG/Raster/landsat_sentinel/X0068_Y0042/"
     list_raster = Tif_finder(data_path, "^2016.*[S][.][t][i][f]{1,2}$")
