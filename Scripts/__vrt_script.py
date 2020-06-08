@@ -23,7 +23,7 @@ if __name__ == '__main__':
                    "X0071_Y0047", "X0072_Y0040", "X0072_Y0042", "X0072_Y0043", "X0072_Y0044", "X0072_Y0045", "X0072_Y0046",
                    "X0072_Y0047", "X0073_Y0044", "X0073_Y0045", "X0073_Y0046"}
 
-    data_path_input = "X:/SattGruen/Analyse/GLSEG/Raster/landsat_sentinel/"
+    data_path_input = "X:/SattGruen/Analyse/GLSEG/Raster/S-1/"
     file_path_raster = Tif_finder(data_path_input, "^2016.*[S][.][t][i][f]{1,2}$")
     print(file_path_raster)
     data_path_vrt = data_path_input + 'vrt/'
@@ -40,6 +40,7 @@ if __name__ == '__main__':
     prec_mete = False
     smoist_mete = False
     spec_temp = True
+    """
     stacked_list = []
     for folder_BB in folders_BRB:
         spec_files_2018 = []
@@ -54,10 +55,73 @@ if __name__ == '__main__':
             stacked_list.append(env_folder + str(folder_BB) + '_stacked.tif')
         else:
             pass
-
-
+        
     vrt_options = gdal.BuildVRTOptions(separate=False)
     gdal.BuildVRT(data_path_vrt + 'vrt_global.vrt', stacked_list, options=vrt_options)
+    
+    stacked_list = []
+    for folder_BB in folders_BRB:
+        spec_files_2018 = []
+        env_folder = data_path_input + folder_BB + '/'
+        spec_files_2018 = Tif_finder(env_folder)
+        print(spec_files_2018)
+        if len(spec_files_2018) > 1:
+            # TODO: create vrt stack instead of "real" stack
+            create_stack(spec_files_2018, env_folder + str(folder_BB) + '_stacked.tif', n_bands=2, custom_subsetter=range(1, 3))
+            stacked_list.append(env_folder + str(folder_BB) + '_stacked.tif')
+        else:
+            pass
+    vrt_options = gdal.BuildVRTOptions(separate=False)
+    gdal.BuildVRT(data_path_vrt + 'vrt_global.vrt', stacked_list, options=vrt_options)
+    """
+    import rasterio
+
+    spec_files_2018 = []
+    env_folder = "X:/SattGruen/Analyse/GLSEG/Raster/landsat_sentinel/X0068_Y0042"
+    name_output_stack = env_folder + 'S1_S2_stack.tif'
+    custom_subsetter = None
+    spec_files_2018 = spec_files_2018 + glob.glob(env_folder + '\\2018*.tif')
+    print(len(spec_files_2018))
+
+    spec_files_2018 = spec_files_2018 + glob.glob(env_folder + '\\*BLU_TSS.tif')
+    spec_files_2018 = spec_files_2018 + glob.glob(env_folder + '\\*GRN_TSS.tif')
+    spec_files_2018 = spec_files_2018 + glob.glob(env_folder + '\\*NDV_TSS.tif')
+    spec_files_2018 = spec_files_2018 + glob.glob(env_folder + '\\*SW1_TSS.tif')
+
+    file_list = spec_files_2018
+    print(file_list)
+    # Read metadata of first file
+    with rasterio.open(file_list[0]) as src0:
+        meta = src0.meta
+
+    # Update meta to reflect the number of layers
+    meta.update(count=392)
+
+    # Read each layer and write it to stack
+    id_counter = 1
+    with rasterio.open(name_output_stack, 'w', **meta) as dst:
+        for id, layer in enumerate(file_list, start=1):
+            print(id, layer)
+
+            with rasterio.open(layer) as src1:
+                print(src1.meta['count'])
+                if src1.meta['count'] > 100:
+                    custom_subsetter = range(90, 165)
+                    for i in custom_subsetter:
+                        print(i)
+                        dst.write_band(id_counter, src1.read(i))
+                        id_counter += 1
+                        print('BAND=', id_counter)
+                else:
+                    custom_subsetter = range(1, src1.meta['count']+1)
+                    for i in custom_subsetter:
+                        print(i)
+                        dst.write_band(id_counter, src1.read(i))
+                        id_counter += 1
+                        print('BAND=', id_counter)
+                    custom_subsetter = None
+            src0 = None
+            src1 = None
 
     """
     data_path = "X:/SattGruen/Analyse/GLSEG/Raster/landsat_sentinel/X0068_Y0042/"
