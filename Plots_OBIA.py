@@ -10,11 +10,27 @@ import pandas as pd
 import gdal
 
 
+
 def nan_helper(y):
     return np.isnan(y), lambda z: z.nonzero()[0]
 
 
-def plot_shapefile(vector_data, raster_data, own_segmentation=False, error_plot=False, custom_subsetter=range(1, 61)):
+def check_trampled(x, y):
+
+    candidates = np.argwhere(y < 0.5)
+    print(candidates)
+    for ys in candidates:
+        if ys > 10:
+            print('testing:', ys)
+        else:
+            pass
+
+
+    return candidates
+
+
+def plot_shapefile(vector_data, raster_data, own_segmentation=False, error_plot=False, custom_subsetter=range(1, 61),
+                   trample_check=None):
     # Create a ListedColormap with only the color green specified
     cmap = colors.ListedColormap(['green'])
     # Use the `set_bad` property of `colormaps` to set all the 'bad' data to red
@@ -74,8 +90,11 @@ def plot_shapefile(vector_data, raster_data, own_segmentation=False, error_plot=
 
             nans, x = nan_helper(row_sd)
             row_sd[nans] = np.interp(x(nans), x(~nans), row_sd[~nans])
-
             x = np.linspace(1, len(row_mean), len(row_mean))
+            if trample_check:
+                check_trampled(x, row_mean)
+            else:
+                None
             plt.subplot(grid_size, grid_size, i)
             plt.title(str(feature_list[i-1]))
             if error_plot:

@@ -24,7 +24,7 @@ if __name__ == '__main__':
     vector_path = data_path + 'Vector/Bewrt_paulinaue_3035.gpkg'
     #vector_path = data_path + 'Vector/Paulienenaue_TF.shp'
 
-    plot_shapefile(data_path + 'Vector/areas_of_no_regrowth.gpkg', raster_path, error_plot=True)
+    plot_shapefile(data_path + 'Vector/areas_of_no_regrowth.gpkg', raster_path, error_plot=True, trample_check=True)
 
     list_of_shapes = Shape_finder(data_path + 'joined_bwrt/')
     print(list_of_shapes)
