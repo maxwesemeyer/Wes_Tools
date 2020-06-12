@@ -9,7 +9,7 @@ import itertools
 import pandas as pd
 import gdal
 
-
+from sklearn.linear_model import LinearRegression
 
 def nan_helper(y):
     return np.isnan(y), lambda z: z.nonzero()[0]
@@ -17,16 +17,31 @@ def nan_helper(y):
 
 def check_trampled(x, y):
 
-    candidates = np.argwhere(y < 0.5)
+    candidates = np.argwhere(y < 0.6)
     print(candidates)
     for ys in candidates:
-        if ys > 10:
-            print('testing:', ys)
+        if ys > 20 and ys < 60:
+            #print('testing:', ys, type(ys))
+
+            test_x = x[ys[0]:ys[0] + 4].reshape(-1, 1)
+            test_y = y[ys[0]:ys[0] + 4].reshape(-1, 1)
+            #print(test_x, test_y)
+            lm = LinearRegression().fit(test_x, test_y)
+            #print('SLOPE:', lm.coef_)
+            if abs(lm.coef_[0]) < 0.009:
+                print(lm.coef_, ys)
+                print(test_x, test_y)
+                plt.scatter(test_x, test_y)
+                m, b = np.polyfit(x[ys[0]:ys[0] + 3], y[ys[0]:ys[0] + 3], 1)
+                plt.plot(x, m * x + b)
+                plt.show()
+                return True
+            else:
+                None
+
         else:
             pass
-
-
-    return candidates
+    return False
 
 
 def plot_shapefile(vector_data, raster_data, own_segmentation=False, error_plot=False, custom_subsetter=range(1, 61),
@@ -69,16 +84,16 @@ def plot_shapefile(vector_data, raster_data, own_segmentation=False, error_plot=
 
     i = 1
     grid_size = int(math.ceil(np.sqrt(len(shapes))))
-    print(grid_size)
+
     for shp in shapes:
 
         with rasterio.open(raster_) as src:
             out_image, out_transform = rasterio.mask.mask(src, [shp], crop=True)
-            print(out_image.shape)
+
             out_image = out_image[custom_subsetter,:,:]
             out_image = out_image.astype(dtype=np.float)
             out_image[out_image < 0] = np.nan
-            print(out_image.shape)
+
             row_mean = (np.nanmean(out_image, axis=(1, 2))) / 10000
             row_sd = (np.nanstd(out_image, axis=(1, 2))) / 10000
             # row_mean[np.isnan(row_mean)] = 0
@@ -92,11 +107,16 @@ def plot_shapefile(vector_data, raster_data, own_segmentation=False, error_plot=
             row_sd[nans] = np.interp(x(nans), x(~nans), row_sd[~nans])
             x = np.linspace(1, len(row_mean), len(row_mean))
             if trample_check:
-                check_trampled(x, row_mean)
+                trampole = check_trampled(x, row_mean)
+                print(trampole, str(feature_list[i-1]))
+                i += 1
+                continue
             else:
                 None
             plt.subplot(grid_size, grid_size, i)
-            plt.title(str(feature_list[i-1]))
+            trampole = 1
+            plt.title(str(feature_list[i-1]) + '_' + str(trampole))
+            trampole = None
             if error_plot:
                 plt.errorbar(x, row_mean, row_sd)
 

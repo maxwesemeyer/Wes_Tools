@@ -152,7 +152,7 @@ def prepare_data(raster_l, vector_geom, custom_subsetter=range(5,65), n_band=11,
         with rasterio.open(raster_l) as src:
             out_image, out_transform = rasterio.mask.mask(src, shp, crop=True, nodata=0)
             mask = create_mask_from_ndim(out_image)
-            #out_image = out_image + 100000
+            out_image = out_image + 100000
             out_image = out_image*mask
             gt_gdal = Affine.to_gdal(out_transform)
             #################################

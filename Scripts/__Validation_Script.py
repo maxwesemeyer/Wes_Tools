@@ -20,13 +20,13 @@ if __name__ == '__main__':
 
     data_path = 'X:/temp/temp_Max/Data/'
     data_patg_alt = 'X:/SattGruen/Analyse/GLSEG/Raster'
-    raster_path = 'X:/SattGruen/Analyse/GLSEG/Raster/X0068_Y0042/2018-2018_001-365_LEVEL4_TSA_SEN2L_NDV_TSS.tif'
+    raster_path = 'X:/SattGruen/Analyse/GLSEG/Raster/X0068_Y0042/2018-2018_001-365_LEVEL4_TSA_SEN2L_NDV_TSI.tif'
     vector_path = data_path + 'Vector/Bewrt_paulinaue_3035.gpkg'
     #vector_path = data_path + 'Vector/Paulienenaue_TF.shp'
 
-    plot_shapefile(data_path + 'Vector/areas_of_no_regrowth.gpkg', raster_path, error_plot=True, trample_check=True)
+    #plot_shapefile(data_path + 'Vector/result_.gpkg', raster_path, error_plot=True, trample_check=False, custom_subsetter=range(1, 60))
 
-    list_of_shapes = Shape_finder(data_path + 'joined_bwrt/')
+    list_of_shapes = Shape_finder(data_path + 'joined/')
     print(list_of_shapes)
     pse_list = []
     overall_list = []
@@ -34,15 +34,16 @@ if __name__ == '__main__':
 
     for shapes in list_of_shapes:
         #pse = Accuracy_Assessment(vector_path, shapes).IoU()
-        pse, nsr, ed2 = Accuracy_Assessment(vector_path, shapes).Liu()
-        print(ed2)
+        #pse, nsr, ed2 = Accuracy_Assessment(vector_path, shapes, convert_reference=True, raster=raster_path).Liu()
+        ed2 = Accuracy_Assessment(vector_path, shapes, convert_reference=True, raster=raster_path).IoU()
+        print((np.array(ed2)))
         pse_list.append(np.mean(np.array(ed2)))
 
 
-    print(np.argmin(np.array(pse_list)))
+    print(np.argmax(np.array(pse_list)), list_of_shapes, pse_list)
 
-    print(np.array(pse_list), np.argmin(np.array(pse_list)))
-    print('According to PSE (ED2)', list_of_shapes[np.argmin(np.array(pse_list))], 'with a score of ', np.min(np.array(pse_list)))
+    #print(np.array(pse_list), np.argmin(np.array(pse_list)))
+    print('According to PSE (ED2)', list_of_shapes[np.argmax(np.array(pse_list))], 'with a score of ', np.max(np.array(pse_list)))
     #plot_shapefile(list_of_shapes[np.argmax(np.array(pse_list))], raster_path)
     #plot_shapefile(list_of_shapes[np.argmax(np.array(pse_list))], raster_path, error_plot=True)
     plot_shapefile(data_path+'Vector/Paulienenaue_TF.shp', raster_path, error_plot=True)

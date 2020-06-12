@@ -1,11 +1,50 @@
 import fiona
 from shapely.geometry import Polygon, shape
 import numpy as np
+import rasterio
+from .__utils import *
+from .__Join_results import *
+import matplotlib.pyplot as plt
+from affine import Affine
+import shutil
+import os
 
 
-def accuracy_prep(reference_poly, segmentation_poly):
+
+
+def adapt_to_pixels(reference_poly, raster):
+    if os.path.exists('X:/temp/temp_Max/Data/temp/'):
+        return
+    else:
+        i = 0
+        os.mkdir('X:/temp/temp_Max/Data/temp/')
+        for shp in reference_poly:
+            with rasterio.open(raster) as src:
+                out_image, out_transform = rasterio.mask.mask(src, [shp], crop=True, nodata=0)
+                gt_gdal = Affine.to_gdal(out_transform)
+                mask = create_mask_from_ndim(out_image)
+                WriteArrayToDisk(mask, 'X:/temp/temp_Max/Data/temp/' + str(i), gt_gdal,
+                                 polygonite=True, fieldo=i, EPSG=3035)
+                i += 1
+        joined = join_shapes_gpd('X:/temp/temp_Max/Data/temp/', own_segmentation='own')
+        joined.to_file('X:/temp/temp_Max/Data/temp/adatpted_to_raster.shp')
+        #shutil.rmtree('X:/temp/temp_Max/Data/temp/')
+        return joined
+
+
+
+
+def accuracy_prep(reference_poly, segmentation_poly, convert_reference=False, raster=None):
     with fiona.open(reference_poly) as shapefile:
         shapes_ref = [feature["geometry"] for feature in shapefile]
+        if convert_reference:
+            """
+            eg. convert reference polygons to Sentinel pixel size
+            """
+            adapt_to_pixels(shapes_ref, raster)
+            with fiona.open('X:/temp/temp_Max/Data/temp/adatpted_to_raster.shp') as shapefile:
+                shapes_ref = [feature["geometry"] for feature in shapefile]
+
     with fiona.open(segmentation_poly) as shapefile:
         shapes_seg = []
         feature_list = []
@@ -23,8 +62,9 @@ def accuracy_prep(reference_poly, segmentation_poly):
 
 class Accuracy_Assessment:
 
-    def __init__(self, reference_poly, segmentation_poly):
-        self.shapes_ref, self.shapes_seg, self.feature_list = accuracy_prep(reference_poly, segmentation_poly)
+    def __init__(self, reference_poly, segmentation_poly, convert_reference=False, raster=None):
+        self.shapes_ref, self.shapes_seg, self.feature_list = accuracy_prep(reference_poly, segmentation_poly,
+                                                                            convert_reference, raster)
 
     def Clinton(self):
         """
