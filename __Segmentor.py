@@ -99,7 +99,7 @@ def scfilter(image, iterations, kernel):
 
 def segment_2(string_to_raster, vector_geom, indexo=np.random.randint(0, 100000),
               data_path_output=None, beta_coef=1, beta_jump=0.1, n_band=50,
-              custom_subsetter=range(0,80),  MMU=0.05, PCA=True):
+              custom_subsetter=range(0,80),  MMU=0.05, PCA=True, into_pca='all'):
     """
     :param string_to_raster: path to raster file
     :param vector_geom: list of fiona geometries
@@ -125,11 +125,12 @@ def segment_2(string_to_raster, vector_geom, indexo=np.random.randint(0, 100000)
     data_patho = data_path_output + 'output'
     field_counter = "{}{}{}{}{}{}{}".format(str(n_band), "_", str(beta_jump), "_", str(beta_coef), str(indexo), str(PCA))
 
-    three_d_image, two_d_im_pca, mask_local, gt_gdal = prepare_data(string_to_raster, vector_geom, custom_subsetter, n_band, MMU=MMU, PCA=PCA)
+    three_d_image, two_d_im_pca, mask_local, gt_gdal = prepare_data(string_to_raster, vector_geom, custom_subsetter,
+                                                                    n_band, MMU=MMU, PCA=PCA, into_pca=into_pca)
     if three_d_image is None:
         return
     ############################################################
-    n_class = 10
+    n_class = 15
     print(three_d_image.shape, two_d_im_pca.shape)
 
     # old 4, 3, 4, 6 for MA now 10

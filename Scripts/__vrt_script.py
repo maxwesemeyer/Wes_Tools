@@ -66,7 +66,7 @@ if __name__ == '__main__':
         
     vrt_options = gdal.BuildVRTOptions(separate=False)
     gdal.BuildVRT(data_path_vrt + 'vrt_global.vrt', stacked_list, options=vrt_options)
-   """
+   
     data_path_input = "X:/SattGruen/Analyse/GLSEG/Raster/S-1/"
     ##########
     # Sentinel 1
@@ -89,16 +89,16 @@ if __name__ == '__main__':
     import rasterio
 
     spec_files_2018 = []
-    env_folder = "X:/SattGruen/Analyse/GLSEG/Raster/landsat_sentinel/X0068_Y0042"
+    env_folder = "X:/SattGruen/Analyse/GLSEG/Raster/Paulinenaue/X0068_Y0042/"
     name_output_stack = env_folder + 'S1_S2_stack.tif'
     custom_subsetter = None
-    spec_files_2018 = spec_files_2018 + glob.glob(env_folder + '\\2018*.tif')
+    #spec_files_2018 = spec_files_2018 + glob.glob(env_folder + '\\2018*.tif')
     print(len(spec_files_2018))
 
-    spec_files_2018 = spec_files_2018 + glob.glob(env_folder + '\\*BLU_TSS.tif')
-    spec_files_2018 = spec_files_2018 + glob.glob(env_folder + '\\*GRN_TSS.tif')
-    spec_files_2018 = spec_files_2018 + glob.glob(env_folder + '\\*NDV_TSS.tif')
-    spec_files_2018 = spec_files_2018 + glob.glob(env_folder + '\\*SW1_TSS.tif')
+    #spec_files_2018 = spec_files_2018 + glob.glob(env_folder + '\\*BLU_TSS.tif')
+    #spec_files_2018 = spec_files_2018 + glob.glob(env_folder + '\\*GRN_TSS.tif')
+    spec_files_2018 = spec_files_2018 + glob.glob(env_folder + '\\*stacked.tif')
+    spec_files_2018 = spec_files_2018 + glob.glob(env_folder + '\\*X0068_Y0042_stacked_S1.tif')
 
     file_list = spec_files_2018
     print(file_list)
@@ -107,7 +107,7 @@ if __name__ == '__main__':
         meta = src0.meta
 
     # Update meta to reflect the number of layers
-    meta.update(count=392)
+    meta.update(count=64+48)
 
     # Read each layer and write it to stack
     id_counter = 1
@@ -117,8 +117,8 @@ if __name__ == '__main__':
 
             with rasterio.open(layer) as src1:
                 print(src1.meta['count'])
-                if src1.meta['count'] > 100:
-                    custom_subsetter = range(90, 165)
+                if src1.meta['count'] > 1:
+                    custom_subsetter = range(1, src1.meta['count']+1)
                     for i in custom_subsetter:
                         print(i)
                         dst.write_band(id_counter, src1.read(i))
@@ -134,85 +134,9 @@ if __name__ == '__main__':
                     custom_subsetter = None
             src0 = None
             src1 = None
-"""
-    """
-    data_path = "X:/SattGruen/Analyse/GLSEG/Raster/landsat_sentinel/X0068_Y0042/"
-    list_raster = Tif_finder(data_path, "^2016.*[S][.][t][i][f]{1,2}$")
-    print(list_raster)
-        create_stack(list_raster, data_path + 'stacked.tif', n_bands=75 ,custom_subsetter=range(90,165))
-    """
-"""
-    for folder_BB in folders_BRB:
-
-        env_folder = data_path_input + folder_BB + '/'
-
-        spec_files_2018 = []
-
-        if spec_temp:
-            spec_files_2018 = spec_files_2018 + sorted(glob.glob(env_folder + '\\*BLU_TSS.tif'), key=mixs)
-            spec_files_2018 = spec_files_2018 + sorted(glob.glob(env_folder + '\\*GRN_TSS.tif'), key=mixs)
-            spec_files_2018 = spec_files_2018 + sorted(glob.glob(env_folder + '\\*NDV_TSS.tif'), key=mixs)
-            spec_files_2018 = spec_files_2018 + sorted(glob.glob(env_folder + '\\*SW1_TSS.tif'), key=mixs)
-
-            print(spec_files_2018)
-
-        if topo:
-
-            spec_files_2018 = spec_files_2018 + (glob.glob(env_folder + '\\srtm_10m.tif'))
-            spec_files_2018 = spec_files_2018 + (glob.glob(env_folder + '\\slope_10m.tif'))
-            spec_files_2018 = spec_files_2018 + (glob.glob(env_folder + '\\aspect_10m.tif'))
-
-        if soil:
-
-            spec_files_2018 = spec_files_2018 + (glob.glob(env_folder + '\\CECSOL_M_sl1_10m.tif'))
-            spec_files_2018 = spec_files_2018 + (glob.glob(env_folder + '\\ORCDRC_M_sl1_10m.tif'))
-            spec_files_2018 = spec_files_2018 + (glob.glob(env_folder + '\\PHIKCL_M_sl1_10m.tif'))
-
-        if temp_mete:
-            #print(sorted(glob.glob(env_folder + '\\TAMM_*2017_01_10m.tif'))[2:11])
-
-            spec_files_2018 = spec_files_2018 + sorted(glob.glob(env_folder + '\\TAMM_*2018_01_10m.tif'), key=mixs)[2:11]
-            print(spec_files_2018)
-
-        if prec_mete:
-            #print(sorted(glob.glob(env_folder + '\\rad_2017*'))[2:11])
-
-            spec_files_2018 = spec_files_2018 + sorted(glob.glob(env_folder + '\\rad_2018*'), key=mixs)[2:11]
-
-
-        if smoist_mete:
-            #print(sorted(glob.glob(env_folder + '\\grids_germany_monthly_soil_moist_2017*'))[2:11])
-
-            spec_files_2018 = spec_files_2018 + sorted(glob.glob(env_folder + '\\grids_germany_monthly_soil_moist_2018*'), key=mixs)[2:11]
-
-        vrt_options = gdal.BuildVRTOptions(separate = True)
-        vrt_string = "{}{}{}{}{}".format(data_path_vrt, folder_BB , "/Precip_2018_", str(folder_BB), ".vrt")
-        print(len(spec_files_2018))
-        print(vrt_string)
-        if not os.path.exists(data_path_vrt + folder_BB):
-            os.mkdir(data_path_vrt + folder_BB)
-        gdal.BuildVRT(vrt_string, spec_files_2018, options=vrt_options)
-
-
-    clims_raster = []
-    for root, dirs, files in os.walk(data_path_vrt):
-        for file in files:
-            if re.match("^[P].*", file):
-                clims_raster.append(str(root + '/' + file ))
-            else:
-                continue
-    print(clims_raster)
-    #merge_vrt_tiles(data_path_vrt, 'Z:/BB_vrt_stack/')
-
-
-    vrt_options = gdal.BuildVRTOptions(separate=False)
-    gdal.BuildVRT('Z:/BB_vrt_global/spec_clim_2018.vrt', clims_raster, options=vrt_options)
 
 
 
-    vrt_options = gdal.BuildVRTOptions(resampleAlg='cubic', addAlpha=False)
-    gdal.BuildVRT('Z:/BB_vrt/BRB_precipitation.vrt', file_path_precip, options=vrt_options)
-"""
 
 
 

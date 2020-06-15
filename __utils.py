@@ -145,14 +145,18 @@ def image_2_2d(image_of_shape):
     return image_2d
 
 
-def prepare_data(raster_l, vector_geom, custom_subsetter=range(5,65), n_band=11, MMU=0.05, PCA=True):
+def prepare_data(raster_l, vector_geom, custom_subsetter=range(5,65), n_band=11, MMU=0.05, PCA=True, into_pca='all'):
     shp = [vector_geom.geometry]
     subsetter_tsi = custom_subsetter
     try:
         with rasterio.open(raster_l) as src:
             out_image, out_transform = rasterio.mask.mask(src, shp, crop=True, nodata=0)
             mask = create_mask_from_ndim(out_image)
-            out_image = out_image + 100000
+            print(out_image[out_image<0].shape)
+            import matplotlib.pyplot as plt
+
+            out_image[out_image < 0] = abs(out_image[out_image<0])
+            print(out_image[out_image<0])
             out_image = out_image*mask
             gt_gdal = Affine.to_gdal(out_transform)
             #################################
@@ -179,8 +183,8 @@ def prepare_data(raster_l, vector_geom, custom_subsetter=range(5,65), n_band=11,
 
                 re = np.reshape(img1, (img1.shape[0] * img1.shape[1], img1.shape[2]))
                 # re_scale = RobustScaler(quantile_range=(0.8, 1)).fit_transform(re)
-                #scaled = (MinMaxScaler(feature_range=(0, 255)).fit_transform(re))
-                scaled = re
+                scaled = (MinMaxScaler(feature_range=(0, 255)).fit_transform(re))
+                #scaled = re
                 scaled_shaped = np.reshape(scaled, (img1.shape))
                 # scaled_shaped = np.square(img1+10)
 
@@ -192,7 +196,6 @@ def prepare_data(raster_l, vector_geom, custom_subsetter=range(5,65), n_band=11,
                 arg_10 = select_bands_sd(np.moveaxis(scaled_shaped, 2, 0), max_valid_pixels_=max_valid_pixel)
                 wh_nan = np.where(np.isnan(scaled_shaped))
                 scaled_shaped[wh_nan] = 0
-
                 im = scaled_shaped[:, :, arg_10]
                 im[im == 0] = np.nan
                 scaled_arg_2d = np.reshape(im, (im.shape[0] * im.shape[1], len(arg_10)))
@@ -207,6 +210,10 @@ def prepare_data(raster_l, vector_geom, custom_subsetter=range(5,65), n_band=11,
 
                     if len(arg_10) > n_band:
                         n_comps = n_band
+                        if into_pca =='all':
+                            None
+                        else:
+                            scaled_arg_2d = scaled_arg_2d[:,:into_pca]
                     else:
                         n_comps = len(arg_10)
                     pca = decomposition.PCA(n_components=n_comps)
