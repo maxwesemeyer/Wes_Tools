@@ -36,6 +36,7 @@ if __name__ == '__main__':
     for shapes in list_of_shapes:
         #pse = Accuracy_Assessment(vector_path, shapes).IoU()
         pse, nsr, ed2 = Accuracy_Assessment(vector_path, shapes, convert_reference=True, raster=raster_path).Liu()
+        OS, US, Overall = Accuracy_Assessment(vector_path, shapes, convert_reference=True, raster=raster_path).Clinton()
         iou = Accuracy_Assessment(vector_path, shapes, convert_reference=True, raster=raster_path).IoU()
         print((np.array(iou)))
         pse_list.append(np.mean(np.array(ed2)))
@@ -47,7 +48,10 @@ if __name__ == '__main__':
     #print(np.argmax(np.array(pse_list)), list_of_shapes, pse_list)
 
     #print(np.array(pse_list), np.argmin(np.array(pse_list)))
-    print('According to PSE (ED2)', list_of_shapes[np.argmax(np.array(pse_list))], 'with a score of ', np.max(np.array(pse_list)))
+    print('According to PSE (ED2)', list_of_shapes[np.argmin(np.array(pse_list))], 'with a score of ',
+          np.min(np.array(pse_list)))
+    print('According to IoU', list_of_shapes[np.argmax(np.array(iou_list))], 'with a score of ',
+          np.max(np.array(iou_list)))
     plot_shapefile(list_of_shapes[np.argmin(np.array(pse_list))], raster_path)
     plot_shapefile(list_of_shapes[np.argmin(np.array(pse_list))], raster_path, error_plot=True)
     plot_shapefile(data_path+'Vector/Paulienenaue_TF.shp', raster_path, error_plot=True)

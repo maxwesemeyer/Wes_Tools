@@ -13,13 +13,13 @@ from Wes_Tools.__Join_results import *
 from Wes_Tools.create_vrt import *
 
 if __name__ == '__main__':
-    """
-    data_path_input = "X:/SattGruen/Analyse/GLSEG/Raster/Paulinenaue/X0068_Y0042/"
+
+    data_path_input = "X:/SattGruen/Analyse/GLSEG/Raster/Ramin/X0071_Y0039/"
     file_path_raster = Tif_finder(data_path_input)
     print(file_path_raster)
     create_stack(file_path_raster, data_path_input + 'stacked.tif', n_bands=12, custom_subsetter=range(1, 12))
     print('finished')
-    """
+
 
     folders_BRB = {"X0065_Y0040", "X0065_Y0041", "X0066_Y0040", "X0066_Y0041", "X0066_Y0042", "X0067_Y0040", "X0067_Y0041",
                    "X0067_Y0042", "X0067_Y0043", "X0067_Y0044", "X0067_Y0045", "X0068_Y0040", "X0068_Y0041", "X0068_Y0042",

@@ -125,12 +125,15 @@ def segment_2(string_to_raster, vector_geom, indexo=np.random.randint(0, 100000)
     data_patho = data_path_output + 'output'
     field_counter = "{}{}{}{}{}{}{}".format(str(n_band), "_", str(beta_jump), "_", str(beta_coef), str(indexo), str(PCA))
 
-    three_d_image, two_d_im_pca, mask_local, gt_gdal = prepare_data(string_to_raster, vector_geom, custom_subsetter,
+    three_d_image, two_d_im_pca, mask_local, gt_gdal, MMU_fail = prepare_data(string_to_raster, vector_geom, custom_subsetter,
                                                                     n_band, MMU=MMU, PCA=PCA, into_pca=into_pca)
-    if three_d_image is None:
-        return
+    if MMU_fail:
+        # this will be used when the parcel is smaller than the MMU limit,
+        n_class = 2
+    else:
+        n_class = 5
     ############################################################
-    n_class = 15
+
     print(three_d_image.shape, two_d_im_pca.shape)
 
     # old 4, 3, 4, 6 for MA now 10
