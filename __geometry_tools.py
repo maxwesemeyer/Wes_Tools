@@ -1,5 +1,13 @@
 from shapely.geometry import box
+from shapely.wkb import loads
 import gdal
+import ogr
+from Wes_Tools.Accuracy_ import *
+from Wes_Tools.Plots_OBIA import *
+from Wes_Tools.__Segmentor import *
+from Wes_Tools.__CNN_segment import *
+from Wes_Tools.__Join_results import *
+from Wes_Tools.__geometry_tools import *
 
 
 def fishnet(geometry, threshold):
@@ -49,3 +57,26 @@ def getRasterExtent(raster_path):
     shapely.geometry.box(minx, miny, maxx, maxy, ccw=True)
     """
     return box(x_min, y_min, x_max, y_max)
+
+
+def find_matching_raster(vector_path, raster_path, search_string):
+    raster_paths = Tif_finder(raster_path, search_string)
+    print(raster_paths)
+    match = False
+    i = 0
+
+    while not match:
+        extent_ = getRasterExtent(raster_paths[i])
+        file = ogr.Open(vector_path)
+        shape = file.GetLayer(0)
+        feature = shape.GetFeature(0)
+        geom = loads(feature.GetGeometryRef().ExportToWkb())
+
+        if geom.within(extent_):
+            match = True
+            return raster_paths[i]
+        elif i == len(raster_paths)-1:
+            print('no matching raster found for', vector_path)
+            return None
+        else:
+            i += 1

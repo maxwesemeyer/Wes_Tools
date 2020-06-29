@@ -233,7 +233,7 @@ def prepare_data(raster_l, vector_geom, custom_subsetter=range(5,65), n_band=11,
                 print(arg_10)
                 if im[:, :, :].shape[2] < n_band:
                     print('n_band parameter bigger than bands available; used all available bands')
-                    return im, scaled_arg_2d, mask_local, gt_gdal
+                    return im, scaled_arg_2d, mask_local, gt_gdal, MMU_fail
                 else:
                     print('no pca, used: ', n_band, ' bands')
                     return im[:, :, :n_band], scaled_arg_2d[:, :n_band], mask_local, gt_gdal, MMU_fail

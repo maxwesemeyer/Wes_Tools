@@ -129,28 +129,32 @@ def segment_2(string_to_raster, vector_geom, indexo=np.random.randint(0, 100000)
                                                                     n_band, MMU=MMU, PCA=PCA, into_pca=into_pca)
     if MMU_fail:
         # this will be used when the parcel is smaller than the MMU limit,
-        n_class = 2
+        mino = 2
+    elif three_d_image is None:
+        return
     else:
         n_class = 5
+    try:
+        mino = bayseg.bic(two_d_im_pca, n_class)
     ############################################################
 
-    print(three_d_image.shape, two_d_im_pca.shape)
+        print(three_d_image.shape, two_d_im_pca.shape)
 
-    # old 4, 3, 4, 6 for MA now 10
-    mino = bayseg.bic(two_d_im_pca, n_class)
-    # mino = 4
-    itero = 100
-    # print(mino)
-    clf = bayseg.BaySeg(three_d_image, mino, beta_init=beta_coef)
-    clf.fit(itero, beta_jump_length=beta_jump)
 
-    # shape: n_iter, flat image, n_classes
-    # print('PROBSHAPE: ', prob.shape)
-    file_str = "{}{}{}".format(data_patho + "/diagnostics", "_stack_", str(field_counter))
-    print(file_str)
-    ie = clf.diagnostics_plot(transpose=True, save=True, path_to_save=file_str + '.png', ie_return=True)
+        itero = 100
 
-    labels = clf.labels[-1, :]
+        clf = bayseg.BaySeg(three_d_image, mino, beta_init=beta_coef)
+        clf.fit(itero, beta_jump_length=beta_jump)
+        clf.diagnostics_plot()
+        # shape: n_iter, flat image, n_classes
+        # print('PROBSHAPE: ', prob.shape)
+        file_str = "{}{}{}".format(data_patho + "/diagnostics", "_stack_", str(field_counter))
+        print(file_str)
+        ie = clf.diagnostics_plot(transpose=True, save=True, path_to_save=file_str + '.png', ie_return=True)
+
+        labels = clf.labels[-1, :]
+    except:
+        return
 
     """
     images_iters = []
