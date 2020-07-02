@@ -133,7 +133,7 @@ def segment_2(string_to_raster, vector_geom, indexo=np.random.randint(0, 100000)
     elif three_d_image is None:
         return
     else:
-        n_class = 5
+        n_class = 10
     try:
         mino = bayseg.bic(two_d_im_pca, n_class)
     ############################################################
@@ -145,7 +145,7 @@ def segment_2(string_to_raster, vector_geom, indexo=np.random.randint(0, 100000)
 
         clf = bayseg.BaySeg(three_d_image, mino, beta_init=beta_coef)
         clf.fit(itero, beta_jump_length=beta_jump)
-        clf.diagnostics_plot()
+
         # shape: n_iter, flat image, n_classes
         # print('PROBSHAPE: ', prob.shape)
         file_str = "{}{}{}".format(data_patho + "/diagnostics", "_stack_", str(field_counter))

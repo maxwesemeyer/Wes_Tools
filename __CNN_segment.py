@@ -35,6 +35,7 @@ class MyNet(nn.Module):
     def __init__(self, input_dim):
         super(MyNet, self).__init__()
         self.conv1 = nn.Conv2d(input_dim, n_band, kernel_size=n_band, stride=stride_, padding=padd)
+
         self.bn1 = nn.BatchNorm2d(n_band)
         self.conv2 = nn.ModuleList()
         self.bn2 = nn.ModuleList()

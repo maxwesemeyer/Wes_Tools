@@ -39,6 +39,7 @@ if __name__ == '__main__':
         OS, US, Overall = Accuracy_Assessment(vector_path, shapes, convert_reference=True, raster=raster_path).Clinton()
         iou = Accuracy_Assessment(vector_path, shapes, convert_reference=True, raster=raster_path).IoU()
         print((np.array(iou)))
+        print(shapes, np.mean(np.array(OS)), np.mean(np.array(US)), np.mean(np.array(Overall)))
         pse_list.append(np.mean(np.array(ed2)))
         iou_list.append(np.mean(np.array(iou)))
     dict = {'name': list_of_shapes, 'IoU': iou_list, 'Clinton': pse_list}

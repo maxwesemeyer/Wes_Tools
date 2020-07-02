@@ -108,12 +108,15 @@ class Accuracy_Assessment:
                     US_temp.append(US)
                     OS_temp.append(OS)
                     Overall_temp.append(Overall)
-
-            arg_select = np.argmax(np.array(intersecz_size))
-            US_out.append(US_temp[arg_select])
-            OS_out.append(OS_temp[arg_select])
-            Overall_out.append(Overall_temp[arg_select])
-
+            if np.any(np.array(intersecz_size) > 1):
+                arg_select = np.argmax(np.array(intersecz_size))
+                US_out.append(US_temp[arg_select])
+                OS_out.append(OS_temp[arg_select])
+                Overall_out.append(Overall_temp[arg_select])
+            else:
+                US_out.append(1)
+                OS_out.append(1)
+                Overall_out.append(1)
         return US_out, OS_out, Overall_out
 
     def Liu(self):

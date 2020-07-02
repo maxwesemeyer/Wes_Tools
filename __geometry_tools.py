@@ -70,9 +70,13 @@ def find_matching_raster(vector_path, raster_path, search_string):
         file = ogr.Open(vector_path)
         shape = file.GetLayer(0)
         feature = shape.GetFeature(0)
+        print(feature.GetGeometryRef(), extent_)
         geom = loads(feature.GetGeometryRef().ExportToWkb())
 
         if geom.within(extent_):
+            match = True
+            return raster_paths[i]
+        if geom.intersects(extent_):
             match = True
             return raster_paths[i]
         elif i == len(raster_paths)-1:

@@ -45,14 +45,14 @@ if __name__ == '__main__':
 
 
     vector_paths = glob.glob(r'X:\SattGruen\Analyse\GLSEG\Raster\Vectorized_Alkis/' + '*.shp')
-
+    vector_paths = ['X:\SattGruen\Analyse\GLSEG\Raster\Vectorized_Alkis/12polygonized.shp']
     another_counter = 0
     for vector_path in vector_paths:
-        data_patg_alt = find_matching_raster(vector_path, 'X:/SattGruen/Analyse/Mowing_detection/Data/Raster/AN3_BN1/', ".*[N][D][V].*[S][S].*[t][i][f]{1,2}$")
+        data_patg_alt = find_matching_raster(vector_path, 'X:/SattGruen/Analyse/Mowing_detection/Data/Raster/AN3_BN1/', ".*[E][V][I].*[B][M].*[t][i][f]{1,2}$")
         if data_patg_alt is None:
             continue
         big_box = getRasterExtent(data_patg_alt)
-        boxes = fishnet(big_box, 5000)
+        boxes = fishnet(big_box, 10000)
         gdf_ = gpd.GeoDataFrame(pd.concat([gpd.read_file(vector_path)], ignore_index=True),
                                crs="EPSG:3035")
         mask = gdf_.area > 2500
@@ -61,7 +61,7 @@ if __name__ == '__main__':
         indexNames = gdf[gdf['Cluster_nb'] == 0].index
         gdf.drop(indexNames, inplace=True)
 
-        box_counter = 0
+        box_counter = 100
         for poly in boxes:
             sub = gpd.GeoDataFrame(gpd.clip(gdf.buffer(0), Polygon(poly).buffer(0.001)))
             #sub = gdf[gdf.geometry.intersection(poly)]
@@ -73,7 +73,7 @@ if __name__ == '__main__':
             #PCA_ = [True, False]
             PCA_ = [True]
             #params_bands = [10, 20, 25]
-            params_bands = [3]
+            params_bands = [2]
             for PC in PCA_:
                 for par in params_bands:
                     for betas in covs:
@@ -83,8 +83,8 @@ if __name__ == '__main__':
                         # old subsetter range(1,500)
                         # 104 168 = April - Ende Oktober
                         Parallel(n_jobs=3)(delayed(segment_2)(data_patg_alt, vector_geom=row, data_path_output=data_path,
-                                                              indexo=index, n_band=par, custom_subsetter=range(1, 90),# custom_subsetter=range(1, 4*12), #custom_subsetter=range(1, 300),# #custom_subsetter=range(1,392),
-                                                                MMU=0.04,into_pca=betas, beta_coef=80, beta_jump=1,
+                                                              indexo=index, n_band=par, custom_subsetter=range(1, 12),# custom_subsetter=range(1, 4*12), #custom_subsetter=range(1, 300),# #custom_subsetter=range(1,392),
+                                                                MMU=0.1,into_pca=betas, beta_coef=80, beta_jump=1,
                                                               PCA=PC) for index, row in sub.iterrows())
 
                         if not os.listdir(data_path + 'output/'):
