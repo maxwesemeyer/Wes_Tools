@@ -99,7 +99,7 @@ def scfilter(image, iterations, kernel):
 
 def segment_2(string_to_raster, vector_geom, indexo=np.random.randint(0, 100000),
               data_path_output=None, beta_coef=1, beta_jump=0.1, n_band=50,
-              custom_subsetter=range(0,80),  MMU=0.05, PCA=True, into_pca='all'):
+              custom_subsetter=range(0,80),  MMU=0.05, PCA=True, into_pca='all', n_class=4):
     """
     :param string_to_raster: path to raster file
     :param vector_geom: list of fiona geometries
@@ -130,12 +130,14 @@ def segment_2(string_to_raster, vector_geom, indexo=np.random.randint(0, 100000)
     if MMU_fail:
         # this will be used when the parcel is smaller than the MMU limit,
         mino = 2
+        labels = np.zeros(three_d_image.shape[0]* three_d_image.shape[1])
     elif three_d_image is None:
         return
     else:
-        n_class = 10
-    try:
+
         mino = bayseg.bic(two_d_im_pca, n_class)
+
+
     ############################################################
 
         print(three_d_image.shape, two_d_im_pca.shape)
@@ -153,8 +155,8 @@ def segment_2(string_to_raster, vector_geom, indexo=np.random.randint(0, 100000)
         ie = clf.diagnostics_plot(transpose=True, save=True, path_to_save=file_str + '.png', ie_return=True)
 
         labels = clf.labels[-1, :]
-    except:
-        return
+        print('SHAPE LABELS', labels.shape)
+
 
     """
     images_iters = []
@@ -168,10 +170,10 @@ def segment_2(string_to_raster, vector_geom, indexo=np.random.randint(0, 100000)
     """
     # imageio.mimsave(data_path + 'bayseg.gif', images_iters)
     file_str = "{}{}{}".format(data_patho + "/Bayseg_", str(field_counter), "_")
-    file_str_ie = "{}{}{}".format(data_patho + "/Bayseg_ie_", str(field_counter), "_")
+    #file_str_ie = "{}{}{}".format(data_patho + "/Bayseg_ie_", str(field_counter), "_")
     # to save as integer
     labels_img = np.reshape(labels, (three_d_image.shape[0], three_d_image.shape[1]))
-    ie_img = np.reshape(ie, (three_d_image.shape[0], three_d_image.shape[1])) * 10000
+    #ie_img = np.reshape(ie, (three_d_image.shape[0], three_d_image.shape[1])) * 10000
     # prob_img = np.reshape(prob[-1, :, 3], labels_img.shape)
 
     # labels__img = np.reshape(labels_, (scaled_shaped.shape[0], scaled_shaped.shape[1]))
@@ -185,7 +187,7 @@ def segment_2(string_to_raster, vector_geom, indexo=np.random.randint(0, 100000)
     WriteArrayToDisk(labels_img, file_str, gt_gdal, polygonite=True, fieldo=field_counter)
     #
     # WriteArrayToDisk(labels_img, file_str_maj, gt_gdal, polygonite=True, fieldo=field_counter)
-    WriteArrayToDisk(ie_img, file_str_ie, gt_gdal, polygonite=False, fieldo=field_counter)
+    #WriteArrayToDisk(ie_img, file_str_ie, gt_gdal, polygonite=False, fieldo=field_counter)
     if file_str is None:
         print('not returning anything')
     else:

@@ -123,14 +123,18 @@ def segment_cnn(string_to_raster, vector_geom, indexo=np.random.randint(0, 10000
 
     ###########
     # prepare data function does the magic here
-    three_d_image, two_d_im_pca, mask_local, gt_gdal = prepare_data(string_to_raster, vector_geom, custom_subsetter,
+    three_d_image, two_d_im_pca, mask_local, gt_gdal, MMU_fail = prepare_data(string_to_raster, vector_geom, custom_subsetter,
                                                                     n_band, MMU=MMU, PCA=PCA, into_pca=into_pca)
     # in case grassland area is too small
     if three_d_image is None:
         return
+    if MMU_fail:
+        return
+        # this will be used when the parcel is smaller than the MMU limit,
+        mino = 2
 
     #labels = segmentation.felzenszwalb(three_d_image, scale=0.1)  #
-    labels = segmentation.slic(three_d_image, n_segments=5000, compactness=20)
+    labels = segmentation.slic(three_d_image, n_segments=500, compactness=20)
 
     im = three_d_image
     file_str = "{}{}{}".format(data_path + "/output/out_labels", str(field_counter), "_")

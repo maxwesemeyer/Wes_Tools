@@ -18,7 +18,7 @@ from Wes_Tools.__geometry_tools import *
 from affine import Affine
 
 if __name__ == '__main__':
-
+    """
     # for each raster in rasterfiles
     # clip alkis mask to raster file
     # write to disk an polygonize
@@ -37,3 +37,15 @@ if __name__ == '__main__':
 
             WriteArrayToDisk(out_image.squeeze(), r'X:\SattGruen\Analyse\GLSEG\Raster\Vectorized_Alkis/' + str(i), gt_gdal, polygonite=True)
             i += 1
+    """
+    ####
+    # drop duplicate geometries
+    vector_paths = Shape_finder('X:/SattGruen/Analyse\GLSEG/Raster/Vectorized_Alkis/')
+    for vector in vector_paths:
+
+        df2 = gpd.GeoDataFrame(pd.concat([gpd.read_file(vector)], ignore_index=True),
+                         crs="EPSG:3035").drop_duplicates(subset='geometry')
+
+        df2.to_file(vector)
+
+

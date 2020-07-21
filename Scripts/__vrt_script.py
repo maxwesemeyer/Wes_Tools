@@ -4,7 +4,7 @@ import os
 import re
 import sys
 sys.path.append("X:/temp/temp_Max/")
-
+import  numpy as np
 from Wes_Tools.Accuracy_ import *
 from Wes_Tools.Plots_OBIA import *
 from Wes_Tools.__Segmentor import *
@@ -14,12 +14,27 @@ from Wes_Tools.create_vrt import *
 
 if __name__ == '__main__':
 
-    data_path_input = "X:/SattGruen/Analyse/GLSEG/Raster/Ramin/X0071_Y0039/"
-    file_path_raster = Tif_finder(data_path_input)
+    data_path_input = "X:/SattGruen/Analyse/GLSEG/Raster/spectemps1/"
+    #data_path_input = r'X:\SattGruen\Analyse\Mowing_detection\Data\Raster\AN3_BN1\X0071_Y0039/'
+    file_path_raster = Tif_finder(data_path_input, ".*[t][i][f]{1,2}$") # ".*[B][M].*[t][i][f]{1,2}$"
     print(file_path_raster)
-    create_stack(file_path_raster, data_path_input + 'stacked.tif', n_bands=12, custom_subsetter=range(1, 12))
+    create_stack(file_path_raster, data_path_input + 'stacked.tif', n_bands=1, custom_subsetter=range(1,2))
     print('finished')
+    s1 = gdal.Open('X:/SattGruen/Analyse/Mowing_detection/Data/Raster/AN3_BN1/X0071_Y0039/stacked.tif')
+    arr_mean = s1.ReadAsArray().mean(axis=0)
+    arr_sd = s1.ReadAsArray().std(axis=0)
 
+    arr_q_25 = np.quantile(s1.ReadAsArray(), 0.05, axis=0)
+    arr_Q_75 = np.quantile(s1.ReadAsArray(), 0.975, axis=0)
+
+    WriteArrayToDisk(arr_mean.squeeze()*100, 'X:/SattGruen/Analyse/GLSEG/Raster/Ramin_S1/stacked_mean.tif', s1.GetGeoTransform())
+    WriteArrayToDisk(arr_sd.squeeze() * 100, 'X:/SattGruen/Analyse/GLSEG/Raster/Ramin_S1/stacked_sd.tif',
+                     s1.GetGeoTransform())
+
+    WriteArrayToDisk(arr_q_25.squeeze() * 100, 'X:/SattGruen/Analyse/GLSEG/Raster/Ramin_S1/arr_q_25.tif',
+                     s1.GetGeoTransform())
+    WriteArrayToDisk(arr_Q_75.squeeze() * 100, 'X:/SattGruen/Analyse/GLSEG/Raster/Ramin_S1/arr_Q_75.tif',
+                     s1.GetGeoTransform())
 
     folders_BRB = {"X0065_Y0040", "X0065_Y0041", "X0066_Y0040", "X0066_Y0041", "X0066_Y0042", "X0067_Y0040", "X0067_Y0041",
                    "X0067_Y0042", "X0067_Y0043", "X0067_Y0044", "X0067_Y0045", "X0068_Y0040", "X0068_Y0041", "X0068_Y0042",
@@ -85,7 +100,7 @@ if __name__ == '__main__':
     vrt_options = gdal.BuildVRTOptions(separate=False)
     gdal.BuildVRT(data_path_vrt + 'vrt_global.vrt', stacked_list, options=vrt_options)
 
-    """
+    
     import rasterio
 
     spec_files_2018 = []
@@ -137,7 +152,7 @@ if __name__ == '__main__':
 
 
 
-
+"""
 
 
 
