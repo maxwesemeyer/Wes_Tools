@@ -2,6 +2,7 @@ from shapely.geometry import box
 from shapely.wkb import loads
 import gdal
 import ogr
+import numpy as np
 from Wes_Tools.Accuracy_ import *
 from Wes_Tools.Plots_OBIA import *
 from Wes_Tools.__Segmentor import *
@@ -62,25 +63,24 @@ def getRasterExtent(raster_path):
 def find_matching_raster(vector_path, raster_path, search_string):
     raster_paths = Tif_finder(raster_path, search_string)
     print(raster_paths)
-    match = False
     i = 0
-
-    while not match:
-        extent_ = getRasterExtent(raster_paths[i])
+    candidates = []
+    candidates_intersect = []
+    for rst in raster_paths:
+        extent_ = getRasterExtent(rst)
         file = ogr.Open(vector_path)
         shape = file.GetLayer(0)
         feature = shape.GetFeature(0)
-        print(feature.GetGeometryRef(), extent_)
         geom = loads(feature.GetGeometryRef().ExportToWkb())
 
-        if geom.within(extent_):
-            match = True
-            return raster_paths[i]
-        if geom.intersects(extent_):
-            match = True
-            return raster_paths[i]
-        elif i == len(raster_paths)-1:
-            print('no matching raster found for', vector_path)
-            return None
+        if geom.overlaps(extent_):
+            candidates.append(rst)
+            candidates_intersect.append(geom.intersection(extent_).area)
+            print(candidates, candidates_intersect)
+            i += 1
         else:
             i += 1
+    if len(candidates) != 0:
+        return candidates[np.argmax(candidates_intersect)]
+    else:
+        print('no matching raster found')

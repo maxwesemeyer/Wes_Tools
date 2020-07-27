@@ -141,10 +141,7 @@ def segment_2(string_to_raster, vector_geom, indexo=np.random.randint(0, 100000)
     ############################################################
 
         print(three_d_image.shape, two_d_im_pca.shape)
-
-
-        itero = 100
-
+        itero = 70
         clf = bayseg.BaySeg(three_d_image, mino, beta_init=beta_coef)
         clf.fit(itero, beta_jump_length=beta_jump)
 

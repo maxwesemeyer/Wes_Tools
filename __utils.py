@@ -183,7 +183,11 @@ def prepare_data(raster_l, vector_geom, custom_subsetter=range(5,65), n_band=11,
             out_image_nan = out_image.copy().astype(dtype=np.float)
             out_image_nan[w] = np.nan
 
+            if MMU_fail:
+                return np.moveaxis(out_image, 0, 2), None, mask_local, gt_gdal, MMU_fail
+            del out_image
             three_band_img = out_image_nan
+            del out_image_nan
             img1 = np.moveaxis(three_band_img, 0, 2)
 
             re = np.reshape(img1, (img1.shape[0] * img1.shape[1], img1.shape[2]))
@@ -196,9 +200,8 @@ def prepare_data(raster_l, vector_geom, custom_subsetter=range(5,65), n_band=11,
             ###########
             # selects bands which have only valid pixels
             scaled_shaped[np.where(scaled_shaped == 0)] = np.nan
-            std_glob = np.nanstd(scaled_shaped, axis=(1, 2))
-            print('global:', sum(std_glob))
-            arg_10 = select_bands_sd(np.moveaxis(scaled_shaped, 2, 0), max_valid_pixels_=max_valid_pixel)
+
+            arg_10 = select_bands_sd(np.moveaxis(scaled_shaped, 2, 0), max_valid_pixels_= max_valid_pixel)
             wh_nan = np.where(np.isnan(scaled_shaped))
             scaled_shaped[wh_nan] = 0
             im = scaled_shaped[:, :, arg_10]
@@ -206,7 +209,6 @@ def prepare_data(raster_l, vector_geom, custom_subsetter=range(5,65), n_band=11,
             scaled_arg_2d = np.reshape(im, (im.shape[0] * im.shape[1], len(arg_10)))
             im[np.isnan(im)] = 0
             scaled_arg_2d[np.isnan(scaled_arg_2d)] = 0
-
             if PCA:
                 print(arg_10)
                 #################

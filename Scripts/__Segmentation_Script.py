@@ -11,6 +11,7 @@ import shutil
 import gdal
 sys.path.append("X:/temp/temp_Max/")
 import glob
+import time
 from Wes_Tools.Accuracy_ import *
 from Wes_Tools.Plots_OBIA import *
 from Wes_Tools.__Segmentor import *
@@ -19,24 +20,24 @@ from Wes_Tools.__Join_results import *
 from Wes_Tools.__geometry_tools import *
 
 
-if __name__ == '__main__':
-
+def main():
     data_path = 'X:/temp/temp_Max/Data/'
     vector_paths = glob.glob(r'X:\SattGruen\Analyse\GLSEG\Raster\Vectorized_Alkis/' + '*.shp')
-    vector_paths = ['X:\SattGruen\Analyse\GLSEG\Raster\Vectorized_Alkis/12polygonized.shp']
+    vector_paths = vector_paths[1:]
+    vector_paths = ['X:\SattGruen\Analyse\GLSEG\Raster\Vectorized_Alkis/11polygonized.shp']
     another_counter = 0
     for vector_path in vector_paths:
-
-        #data_patg_alt = find_matching_raster(vector_path, 'X:/SattGruen/Analyse/Mowing_detection/Data/Raster/AN3_BN1/', ".*[N][D][V].*[B][M].*[t][i][f]{1,2}$")
-        data_patg_alt = 'X:/SattGruen/Analyse/GLSEG/Raster/Ramin_S1/stacked.tif'
+        print(vector_path)
+        data_patg_alt = find_matching_raster(vector_path, 'X:/SattGruen/Analyse/Mowing_detection/Data/Raster/AN3_BN1/', ".*[N][D][V].*[B][M].*[t][i][f]{1,2}$")
+        print(data_patg_alt)
         if data_patg_alt is None:
             continue
         big_box = getRasterExtent(data_patg_alt)
         boxes = fishnet(big_box, 15000)
         print(len(boxes))
         gdf_ = gpd.GeoDataFrame(pd.concat([gpd.read_file(vector_path)], ignore_index=True),
-                               crs="EPSG:3035")
-        mask = gdf_.area > 2500
+                                crs="EPSG:3035")
+        mask = gdf_.area > 500
         gdf = gdf_.loc[mask]
 
         indexNames = gdf[gdf['Cluster_nb'] == 0].index
@@ -45,19 +46,23 @@ if __name__ == '__main__':
         box_counter = 100
         boxes = [1]
         for poly in boxes:
-            #sub = gpd.GeoDataFrame(gpd.clip(gdf.buffer(0), Polygon(poly).buffer(0.001)))
+            # sub = gpd.GeoDataFrame(gpd.clip(gdf.buffer(0), Polygon(poly).buffer(0.001)))
             covs = 40
             # best set of parameters so far: no PCA, all available bands and Beta=20;
             # according to Liu: no PCA, 11 bands, Beta=100
-            #PCA_ = [True, False]
+            # PCA_ = [True, False]
             PCA_ = [True]
-            #params_bands = [10, 20, 25]
+            # params_bands = [10, 20, 25]
             params_bands = [2]
             for PC in PCA_:
                 for par in params_bands:
                     big_segment_check = False
 
-                    for segmentation_rounds in [0.5, 0.05, 0.51]:
+                    for segmentation_rounds in [0.5, 0.05, 0.25]:
+                        try:
+                            shutil.rmtree(data_path + 'output/')
+                        except:
+                            print('')
                         os.mkdir(data_path + 'output')
                         print('ROUNd', segmentation_rounds)
                         # does not work within function with parallel os.mkdir
@@ -68,18 +73,25 @@ if __name__ == '__main__':
                         # first round 0.05
                         # second round 0.5
                         if segmentation_rounds == 0.5:
-                            Parallel(n_jobs=10)(
+                            data_patg_alt = find_matching_raster(vector_path,
+                                                                 'X:/SattGruen/Analyse/Mowing_detection/Data/Raster/S-1/',
+                                                                 ".*[c][k][e][d].*[t][i][f]{1,2}$")
+                            print(data_patg_alt)
+
+                            Parallel(n_jobs=5)(
                                 delayed(segment_2)(data_patg_alt, vector_geom=row, data_path_output=data_path,
                                                    indexo=index, n_band=par, custom_subsetter=range(10, 21),
                                                    # custom_subsetter=range(1, 4*12), #custom_subsetter=range(1, 300),# #custom_subsetter=range(1,392),
-                                                   MMU=segmentation_rounds, into_pca=covs, beta_coef=50, beta_jump=1,
-                                                   PCA=PC, n_class=3) for index, row in gdf.iterrows())
-                        if segmentation_rounds == 0.05 or segmentation_rounds == 0.51:
-                            different_raster = find_matching_raster(vector_path, 'X:/SattGruen/Analyse/Mowing_detection/Data/Raster/AN3_BN1/', ".*[N][D][V].*[B][M].*[t][i][f]{1,2}$")
+                                                   MMU=segmentation_rounds, into_pca=covs, beta_coef=50, beta_jump=1.5,
+                                                   PCA=PC, n_class=4) for index, row in gdf.iterrows())
+                        if segmentation_rounds == 0.05 or segmentation_rounds == 0.25:
+                            different_raster = find_matching_raster(vector_path,
+                                                                    'X:/SattGruen/Analyse/Mowing_detection/Data/Raster/AN3_BN1/',
+                                                                    ".*[N][D][V].*[B][M].*[t][i][f]{1,2}$")
 
-                            Parallel(n_jobs=15)(
+                            Parallel(n_jobs=5)(
                                 delayed(segment_2)(different_raster, vector_geom=row, data_path_output=data_path,
-                                                   indexo=index, n_band=100, custom_subsetter=range(15,78),#custom_subsetter=range(3, 11),
+                                                   indexo=index, n_band=100, custom_subsetter=range(3, 11),
                                                    # custom_subsetter=range(1, 4*12), #custom_subsetter=range(1, 300),# #custom_subsetter=range(1,392),
                                                    MMU=segmentation_rounds, into_pca=covs, beta_coef=60, beta_jump=1,
                                                    PCA=False, n_class=4) for index, row in gdf.iterrows())
@@ -97,17 +109,19 @@ if __name__ == '__main__':
                         print('joined data frame:', joined)
                         shutil.rmtree(data_path + 'output/')
 
-                    field_counter = "{}{}{}{}{}{}{}{}".format(str(PC), "_", str(par), "_", str(covs), '_', box_counter, "_" + str(another_counter) + "_")
+                    field_counter = "{}{}{}{}{}{}{}{}".format(str(PC), "_", str(par), "_", str(covs), '_', box_counter,
+                                                              "_" + str(another_counter) + "_")
                     box_counter += 1
                     another_counter += 10
                     print(field_counter)
-                    joined.to_file(data_path + 'joined/threetepSeg_s1_s2_TSS_' +  field_counter + '.shp')
+                    joined.to_file(data_path + 'joined/threetepSeg_s1_s2_FBM_' + field_counter + '.shp')
 
 
-
-"""
-    gdf = gpd.GeoDataFrame(pd.concat([gpd.read_file('X:/temp/temp_Max/Data/joined_bwrt//bayseg_bwrtFalse_20_1_.shp')], ignore_index=True),
-                           crs=gpd.read_file('X:/temp/temp_Max/Data/joined_bwrt//bayseg_bwrtFalse_20_1_.shp').crs)
+def aggregate_main(inputshape, data_patg_alt):
+    data_path = 'X:/temp/temp_Max/Data/'
+    gdf = gpd.GeoDataFrame(
+        pd.concat([gpd.read_file(inputshape)], ignore_index=True),
+        crs=gpd.read_file(inputshape).crs)
     # drop cluster number 0, which is all no grassland polygons
     indexNames = gdf[gdf['Cluster_nb'] == 0].index
     gdf.drop(indexNames, inplace=True)
@@ -116,10 +130,10 @@ if __name__ == '__main__':
     indexNames_2 = gdf[np.isnan(gdf['field_nb'])].index
     gdf.drop(indexNames_2, inplace=True)
 
-    x = Parallel(n_jobs=1)(
+    x = Parallel(n_jobs=20)(
         delayed(aggregator)(
             raster_NDV=data_patg_alt,
-            shapei=row, indexo=index, subsetter=range(90,165)) for
+            shapei=row, indexo=index, subsetter=range(1, 57)) for
         index, row in gdf.iterrows())
 
     mergo = pd.DataFrame(x)
@@ -127,11 +141,36 @@ if __name__ == '__main__':
 
     mergo[mergo.columns[-1]] = mergo[mergo.columns[-1]].astype(dtype=int)
     merged = gdf.merge(mergo, left_index=True, right_index=False, right_on=mergo[mergo.columns[-1]])
-    merged = merged.iloc[:,range(3, 151)]
-    #gpd_merged = gpd.GeoDataFrame(merged, crs="EPSG:3035", geometry=merged[0])
-    #gpd_merged.to_file(data_path + 'merged_bayseg_raster.shp')
+    print(merged)
+    merged = merged.iloc[:, range(3, 117)]
+
+    # gpd_merged = gpd.GeoDataFrame(merged, crs="EPSG:3035", geometry=merged[0])
+    # gpd_merged.to_file(data_path + 'merged_bayseg_raster.shp')
     merged.to_csv(data_path + 'merged_bayseg_raster.csv')
-"""
+
+if __name__ == '__main__':
+    """
+    data_path = 'X:/temp/temp_Max/Data/'
+    #aggregate_main(r'X:\temp\temp_Max\Data\joined\threetepSeg_s1_s2_new_True_2_40_100_0_.shp',
+    #               r'X:\temp\temp_Marcel\S-1_test\Ramin\Ramin_S1_Coh_resample_10.dat')
+    df = pd.read_csv(data_path + 'merged_bayseg_raster.csv')
+    df_n = df.iloc[:, range(3, 111)].to_numpy()
+    from sklearn.cluster import AgglomerativeClustering
+    print(df_n.shape)
+    labels = AgglomerativeClustering(n_clusters=5).fit_predict(df_n)
+    print(labels.shape)
+    df['clusters'] = labels
+    df.to_csv(data_path + 'merged_bayseg_raster_labels.csv')
+    """
+    start = time.time()
+    print('started at:', start)
+    main()
+    end = time.time()
+    elapsed_time = end - start
+
+
+
+
 
 """
 IDEAs: 

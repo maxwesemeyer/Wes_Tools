@@ -12,13 +12,21 @@ from Wes_Tools.__CNN_segment import *
 from Wes_Tools.__Join_results import *
 from Wes_Tools.create_vrt import *
 
-if __name__ == '__main__':
 
-    data_path_input = "X:/SattGruen/Analyse/GLSEG/Raster/spectemps1/"
-    #data_path_input = r'X:\SattGruen\Analyse\Mowing_detection\Data\Raster\AN3_BN1\X0071_Y0039/'
-    file_path_raster = Tif_finder(data_path_input, ".*[t][i][f]{1,2}$") # ".*[B][M].*[t][i][f]{1,2}$"
+def main():
+    data_path_input = r'\\141.20.140.91\NAS_Rodinia\Croptype\Mowing2018'
+    file_path_raster = Tif_finder(data_path_input, ".*[u][m].*[t][i][f]{1,2}$")
     print(file_path_raster)
-    create_stack(file_path_raster, data_path_input + 'stacked.tif', n_bands=1, custom_subsetter=range(1,2))
+    vrt_options = gdal.BuildVRTOptions(separate=False)
+    gdal.BuildVRT(r'\\141.20.140.91/NAS_Rodinia/Croptype/Mowing2018/vrt/' + 'vrt_SUM.vrt', file_path_raster, options=vrt_options)
+
+
+def main_2():
+    data_path_input = "X:/SattGruen/Analyse/GLSEG/Raster/spectemps1/"
+    # data_path_input = r'X:\SattGruen\Analyse\Mowing_detection\Data\Raster\AN3_BN1\X0071_Y0039/'
+    file_path_raster = Tif_finder(data_path_input, ".*[t][i][f]{1,2}$")  # ".*[B][M].*[t][i][f]{1,2}$"
+    print(file_path_raster)
+    create_stack(file_path_raster, data_path_input + 'stacked.tif', n_bands=1, custom_subsetter=range(1, 2))
     print('finished')
     s1 = gdal.Open('X:/SattGruen/Analyse/Mowing_detection/Data/Raster/AN3_BN1/X0071_Y0039/stacked.tif')
     arr_mean = s1.ReadAsArray().mean(axis=0)
@@ -27,7 +35,8 @@ if __name__ == '__main__':
     arr_q_25 = np.quantile(s1.ReadAsArray(), 0.05, axis=0)
     arr_Q_75 = np.quantile(s1.ReadAsArray(), 0.975, axis=0)
 
-    WriteArrayToDisk(arr_mean.squeeze()*100, 'X:/SattGruen/Analyse/GLSEG/Raster/Ramin_S1/stacked_mean.tif', s1.GetGeoTransform())
+    WriteArrayToDisk(arr_mean.squeeze() * 100, 'X:/SattGruen/Analyse/GLSEG/Raster/Ramin_S1/stacked_mean.tif',
+                     s1.GetGeoTransform())
     WriteArrayToDisk(arr_sd.squeeze() * 100, 'X:/SattGruen/Analyse/GLSEG/Raster/Ramin_S1/stacked_sd.tif',
                      s1.GetGeoTransform())
 
@@ -36,6 +45,25 @@ if __name__ == '__main__':
     WriteArrayToDisk(arr_Q_75.squeeze() * 100, 'X:/SattGruen/Analyse/GLSEG/Raster/Ramin_S1/arr_Q_75.tif',
                      s1.GetGeoTransform())
 
+
+def main_stack(folders_BRB):
+
+    for folder in folders_BRB:
+        force_tile = folder.split('/')[-1]
+        print(force_tile)
+        data_path_input = folder + '/'
+        file_path_raster = Tif_finder(data_path_input, ".*[t][i][f]{1,2}$")  # ".*[B][M].*[t][i][f]{1,2}$"
+        if not file_path_raster:
+            continue
+        else:
+            out_string = data_path_input + 'S1_stacked_' + force_tile + '.tif'
+            create_stack(file_path_raster,out_string , n_bands=1, custom_subsetter=range(1, 2))
+
+
+if __name__ == '__main__':
+    folders_BRB = [x[0] for x in os.walk(r'X:\SattGruen\Analyse\Mowing_detection\Data\Raster\AN3_BN1\S-1/')]
+    print(folders_BRB[1:])
+    main_stack(folders_BRB[1:])
     folders_BRB = {"X0065_Y0040", "X0065_Y0041", "X0066_Y0040", "X0066_Y0041", "X0066_Y0042", "X0067_Y0040", "X0067_Y0041",
                    "X0067_Y0042", "X0067_Y0043", "X0067_Y0044", "X0067_Y0045", "X0068_Y0040", "X0068_Y0041", "X0068_Y0042",
                    "X0068_Y0043", "X0068_Y0044", "X0068_Y0045", "X0069_Y0040", "X0069_Y0041", "X0069_Y0042", "X0069_Y0043",
@@ -44,6 +72,7 @@ if __name__ == '__main__':
                    "X0071_Y0040", "X0071_Y0041", "X0071_Y0042", "X0071_Y0043", "X0071_Y0044", "X0071_Y0045", "X0071_Y0046",
                    "X0071_Y0047", "X0072_Y0040", "X0072_Y0042", "X0072_Y0043", "X0072_Y0044", "X0072_Y0045", "X0072_Y0046",
                    "X0072_Y0047", "X0073_Y0044", "X0073_Y0045", "X0073_Y0046"}
+
     """
     data_path_input = "X:/SattGruen/Analyse/GLSEG/Raster/landsat_sentinel/"
     file_path_raster = Tif_finder(data_path_input, "^2016.*[S][.][t][i][f]{1,2}$")

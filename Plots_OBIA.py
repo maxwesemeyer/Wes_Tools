@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import itertools
 import pandas as pd
 import gdal
-
+from rasterio.mask import mask
 from sklearn.linear_model import LinearRegression
 
 def nan_helper(y):
@@ -254,7 +254,7 @@ def aggregator(raster_NDV, shapei, indexo=np.random.randint(0, 10000), raster_cl
 
         out = out.astype(dtype=np.float)
         out[out < 0] = np.nan
-        row_mean = (np.nanmean(out, axis=(1, 2))) / 10000
+        row_mean = (np.nanmean(out, axis=(1, 2)))# / 10000
         row_mean[np.isnan(row_mean)] = 0
         print(row_mean)
         # sd

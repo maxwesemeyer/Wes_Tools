@@ -126,115 +126,115 @@ def segment_cnn(string_to_raster, vector_geom, indexo=np.random.randint(0, 10000
     three_d_image, two_d_im_pca, mask_local, gt_gdal, MMU_fail = prepare_data(string_to_raster, vector_geom, custom_subsetter,
                                                                     n_band, MMU=MMU, PCA=PCA, into_pca=into_pca)
     # in case grassland area is too small
-    if three_d_image is None:
-        return
     if MMU_fail:
+        flat_array = np.zeros(three_d_image.shape[0], three_d_image.shape[1])
+    elif three_d_image is None:
         return
-        # this will be used when the parcel is smaller than the MMU limit,
-        mino = 2
 
-    #labels = segmentation.felzenszwalb(three_d_image, scale=0.1)  #
-    labels = segmentation.slic(three_d_image, n_segments=500, compactness=20)
+    else:
 
-    im = three_d_image
-    file_str = "{}{}{}".format(data_path + "/output/out_labels", str(field_counter), "_")
+        #labels = segmentation.felzenszwalb(three_d_image, scale=0.1)  #
+        labels = segmentation.slic(three_d_image, n_segments=500, compactness=20)
 
-    labels_img = np.reshape(labels, (three_d_image.shape[0], three_d_image.shape[1]))
-    # labels__img = np.reshape(labels_, (scaled_shaped.shape[0], scaled_shaped.shape[1]))
-    labels_img += 1
-    labels_img[mask_local] = 0
-    labels = labels_img.reshape(im.shape[0] * im.shape[1])
-    print(im.shape, labels.shape)
-    plt.imshow(labels_img)
-    #plt.show()
+        im = three_d_image
+        file_str = "{}{}{}".format(data_path + "/output/out_labels", str(field_counter), "_")
 
-    # WriteArrayToDisk(labels_img, file_str, gt_gdal, polygonite=True)
-    ################################ cnn stuff
-    data = torch.from_numpy(np.array([im.transpose((2, 0, 1)).astype('float32') / 255.]))
+        labels_img = np.reshape(labels, (three_d_image.shape[0], three_d_image.shape[1]))
+        # labels__img = np.reshape(labels_, (scaled_shaped.shape[0], scaled_shaped.shape[1]))
+        labels_img += 1
+        labels_img[mask_local] = 0
+        labels = labels_img.reshape(im.shape[0] * im.shape[1])
+        print(im.shape, labels.shape)
+        plt.imshow(labels_img)
+        #plt.show()
 
-    visualize = True
-    data = Variable(data)
-    u_labels = np.unique(labels)
+        # WriteArrayToDisk(labels_img, file_str, gt_gdal, polygonite=True)
+        ################################ cnn stuff
+        data = torch.from_numpy(np.array([im.transpose((2, 0, 1)).astype('float32') / 255.]))
 
-    l_inds = []
-    for i in range(len(u_labels)):
-        l_inds.append(np.where(labels == u_labels[i])[0])
+        visualize = True
+        data = Variable(data)
+        u_labels = np.unique(labels)
 
-    # train
-    model = MyNet(data.size(1))
+        l_inds = []
+        for i in range(len(u_labels)):
+            l_inds.append(np.where(labels == u_labels[i])[0])
 
-    # if os.path.exists(data_path + 'cnn_model'):
-    # model = torch.load(data_path + 'cnn_model')
-    model.train()
-    loss_fn = torch.nn.CrossEntropyLoss()
-    optimizer = optim.SGD(model.parameters(), lr=lr_var, momentum=0.8)
-    label_colours = np.random.randint(255, size=(100, n_band))
-    # to create a gif
-    images = []
-    for batch_idx in range(100):
-        # forwarding
-        optimizer.zero_grad()
-        output = model(data)[0]
-        output = output.permute(1, 2, 0).contiguous().view(-1, n_band)
-        ignore, target = torch.max(output, 1)
-        im_target = target.data.cpu().numpy()
-        nLabels = len(np.unique(im_target))
+        # train
+        model = MyNet(data.size(1))
 
-        if visualize:
+        # if os.path.exists(data_path + 'cnn_model'):
+        # model = torch.load(data_path + 'cnn_model')
+        model.train()
+        loss_fn = torch.nn.CrossEntropyLoss()
+        optimizer = optim.SGD(model.parameters(), lr=lr_var, momentum=0.8)
+        label_colours = np.random.randint(255, size=(100, n_band))
+        # to create a gif
+        images = []
+        for batch_idx in range(100):
+            # forwarding
+            optimizer.zero_grad()
+            output = model(data)[0]
+            output = output.permute(1, 2, 0).contiguous().view(-1, n_band)
+            ignore, target = torch.max(output, 1)
+            im_target = target.data.cpu().numpy()
+            nLabels = len(np.unique(im_target))
+
+            if visualize:
+                im_target_rgb = np.array([label_colours[c % 100] for c in im_target])
+
+                im_target_rgb = im_target_rgb.reshape(im.shape).astype(np.uint8)
+                shp_1 = (np.sqrt(im_target_rgb.shape[0])).astype(np.int)
+
+                # im_target_rgb = im_target_rgb.reshape((shp_1, shp_1, 10)).astype(np.uint8)
+
+                images.append((im_target_rgb[:, :, 0]))
+
+                cv2.imshow("output", im_target_rgb[:, :, [0, 1, 2]])
+                cv2.waitKey(n_band)
+
+            # superpixel refinement
+            # TODO: use Torch Variable instead of numpy for faster calculation
+            for i in range(len(l_inds)):
+                labels_per_sp = im_target[l_inds[i]]
+                u_labels_per_sp = np.unique(labels_per_sp)
+                hist = np.zeros(len(u_labels_per_sp))
+                for j in range(len(hist)):
+                    hist[j] = len(np.where(labels_per_sp == u_labels_per_sp[j])[0])
+                im_target[l_inds[i]] = u_labels_per_sp[np.argmax(hist)]
+            target = torch.from_numpy(im_target)
+
+            target = Variable(target)
+            loss = loss_fn(output, target)
+            loss.backward()
+            optimizer.step()
+
+            # print (batch_idx, '/', args.maxIter, ':', nLabels, loss.data[0])
+            print(batch_idx, '/', 100, ':', nLabels, loss.item())
+
+            if nLabels < 2:
+                print("nLabels", nLabels, "reached minLabels", 2, ".")
+                break
+        # torch.save(model, data_path + 'cnn_model')
+        # save output image
+        if not visualize:
+            output = model(data)[0]
+            output = output.permute(1, 2, 0).contiguous().view(-1, n_band)
+            ignore, target = torch.max(output, 1)
+            im_target = target.data.cpu().numpy()
             im_target_rgb = np.array([label_colours[c % 100] for c in im_target])
-
             im_target_rgb = im_target_rgb.reshape(im.shape).astype(np.uint8)
-            shp_1 = (np.sqrt(im_target_rgb.shape[0])).astype(np.int)
+        imageio.mimsave(data_path + 'cnn.gif', images)
+        print(im_target_rgb.shape)
 
-            # im_target_rgb = im_target_rgb.reshape((shp_1, shp_1, 10)).astype(np.uint8)
+        flat_array = im_target_rgb[:, :, 0].squeeze()
+        flat_array += 1
+        flat_array[mask_local] = 0
+        print(type(flat_array))
 
-            images.append((im_target_rgb[:, :, 0]))
-
-            cv2.imshow("output", im_target_rgb[:, :, [0, 1, 2]])
-            cv2.waitKey(n_band)
-
-        # superpixel refinement
-        # TODO: use Torch Variable instead of numpy for faster calculation
-        for i in range(len(l_inds)):
-            labels_per_sp = im_target[l_inds[i]]
-            u_labels_per_sp = np.unique(labels_per_sp)
-            hist = np.zeros(len(u_labels_per_sp))
-            for j in range(len(hist)):
-                hist[j] = len(np.where(labels_per_sp == u_labels_per_sp[j])[0])
-            im_target[l_inds[i]] = u_labels_per_sp[np.argmax(hist)]
-        target = torch.from_numpy(im_target)
-
-        target = Variable(target)
-        loss = loss_fn(output, target)
-        loss.backward()
-        optimizer.step()
-
-        # print (batch_idx, '/', args.maxIter, ':', nLabels, loss.data[0])
-        print(batch_idx, '/', 100, ':', nLabels, loss.item())
-
-        if nLabels < 2:
-            print("nLabels", nLabels, "reached minLabels", 2, ".")
-            break
-    # torch.save(model, data_path + 'cnn_model')
-    # save output image
-    if not visualize:
-        output = model(data)[0]
-        output = output.permute(1, 2, 0).contiguous().view(-1, n_band)
-        ignore, target = torch.max(output, 1)
-        im_target = target.data.cpu().numpy()
-        im_target_rgb = np.array([label_colours[c % 100] for c in im_target])
-        im_target_rgb = im_target_rgb.reshape(im.shape).astype(np.uint8)
-    imageio.mimsave(data_path + 'cnn.gif', images)
-    print(im_target_rgb.shape)
-
-    flat_array = im_target_rgb[:, :, 0].squeeze()
-    flat_array += 1
-    flat_array[mask_local] = 0
-    print(type(flat_array))
-
-    plt.figure(figsize=(15, 8))
-    plt.imshow(flat_array)
-    # plt.show()
+        plt.figure(figsize=(15, 8))
+        plt.imshow(flat_array)
+        # plt.show()
 
     file_str = "{}{}".format(data_path + "/CNN_", str(field_counter))
     WriteArrayToDisk(flat_array, file_str, gt_gdal, polygonite=True, fieldo=field_counter)
