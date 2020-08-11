@@ -24,24 +24,26 @@ def main():
     data_path = 'X:/temp/temp_Max/Data/'
     vector_paths = glob.glob(r'X:\SattGruen\Analyse\GLSEG\Raster\Vectorized_Alkis/' + '*.shp')
     vector_paths = vector_paths[1:]
-    vector_paths = ['X:\SattGruen\Analyse\GLSEG\Raster\Vectorized_Alkis/11polygonized.shp']
+    vector_paths = ['X:\SattGruen\Analyse\GLSEG\Raster\Vectorized_Alkis/12polygonized.shp']
+    vector_paths = ['X:/temp/temp_Max/Data/Vector/own_big_mask_3035.shp']
+    #vector_paths = [r'X:\SattGruen\Analyse\GLSEG\Raster\snippets_invekos/stacked_12_9.pngpolygonized.shp']
     another_counter = 0
     for vector_path in vector_paths:
         print(vector_path)
-        data_patg_alt = find_matching_raster(vector_path, 'X:/SattGruen/Analyse/Mowing_detection/Data/Raster/AN3_BN1/', ".*[N][D][V].*[B][M].*[t][i][f]{1,2}$")
-        print(data_patg_alt)
-        if data_patg_alt is None:
-            continue
-        big_box = getRasterExtent(data_patg_alt)
-        boxes = fishnet(big_box, 15000)
-        print(len(boxes))
+        #data_patg_alt = find_matching_raster(vector_path, 'X:/SattGruen/Analyse/Mowing_detection/Data/Raster/AN3_BN1/', ".*[N][D][V].*[B][M].*[t][i][f]{1,2}$")
+        #print(data_patg_alt)
+        #if data_patg_alt is None:
+        #    continue
+        #big_box = getRasterExtent(data_patg_alt)
+        #boxes = fishnet(big_box, 15000)
+        #print(len(boxes))
         gdf_ = gpd.GeoDataFrame(pd.concat([gpd.read_file(vector_path)], ignore_index=True),
                                 crs="EPSG:3035")
         mask = gdf_.area > 500
         gdf = gdf_.loc[mask]
-
-        indexNames = gdf[gdf['Cluster_nb'] == 0].index
-        gdf.drop(indexNames, inplace=True)
+        #gdf = gdf_
+        #indexNames = gdf[gdf['Cluster_nb'] == 0].index
+        #gdf.drop(indexNames, inplace=True)
 
         box_counter = 100
         boxes = [1]
@@ -51,14 +53,14 @@ def main():
             # best set of parameters so far: no PCA, all available bands and Beta=20;
             # according to Liu: no PCA, 11 bands, Beta=100
             # PCA_ = [True, False]
-            PCA_ = [True]
+            PCA_ = [False]
             # params_bands = [10, 20, 25]
-            params_bands = [2]
+            params_bands = [11]
             for PC in PCA_:
                 for par in params_bands:
                     big_segment_check = False
 
-                    for segmentation_rounds in [0.5, 0.05, 0.25]:
+                    for segmentation_rounds in [0.5]:
                         try:
                             shutil.rmtree(data_path + 'output/')
                         except:
@@ -77,24 +79,36 @@ def main():
                                                                  'X:/SattGruen/Analyse/Mowing_detection/Data/Raster/S-1/',
                                                                  ".*[c][k][e][d].*[t][i][f]{1,2}$")
                             print(data_patg_alt)
-
+                            c = segmentation()
                             Parallel(n_jobs=5)(
-                                delayed(segment_2)(data_patg_alt, vector_geom=row, data_path_output=data_path,
-                                                   indexo=index, n_band=par, custom_subsetter=range(10, 21),
-                                                   # custom_subsetter=range(1, 4*12), #custom_subsetter=range(1, 300),# #custom_subsetter=range(1,392),
+                                delayed(segmentation(n_band=par, custom_subsetter=range(10, 21),
+
                                                    MMU=segmentation_rounds, into_pca=covs, beta_coef=50, beta_jump=1.5,
-                                                   PCA=PC, n_class=4) for index, row in gdf.iterrows())
+                                                   PCA=PC, n_class=3, iterations=100).segment_2())(data_patg_alt, vector_geom=row, data_path_output=data_path,
+                                                   indexo=index) for index, row in gdf.iterrows())
                         if segmentation_rounds == 0.05 or segmentation_rounds == 0.25:
+
                             different_raster = find_matching_raster(vector_path,
                                                                     'X:/SattGruen/Analyse/Mowing_detection/Data/Raster/AN3_BN1/',
                                                                     ".*[N][D][V].*[B][M].*[t][i][f]{1,2}$")
+                            different_raster = find_matching_raster(vector_path,
+                                                                 'X:/SattGruen/Analyse/Mowing_detection/Data/Raster/S-1/',
+                                                                 ".*[c][k][e][d].*[t][i][f]{1,2}$")
 
-                            Parallel(n_jobs=5)(
-                                delayed(segment_2)(different_raster, vector_geom=row, data_path_output=data_path,
-                                                   indexo=index, n_band=100, custom_subsetter=range(3, 11),
+                            segment_2(different_raster, vector_geom=vector_path, data_path_output=data_path,
+                                                   indexo=200, n_band=11, custom_subsetter=range(10, 21),
                                                    # custom_subsetter=range(1, 4*12), #custom_subsetter=range(1, 300),# #custom_subsetter=range(1,392),
-                                                   MMU=segmentation_rounds, into_pca=covs, beta_coef=60, beta_jump=1,
-                                                   PCA=False, n_class=4) for index, row in gdf.iterrows())
+                                                   MMU=segmentation_rounds, into_pca=10, PCA=False, #beta_coef=60, beta_jump=1,PCA=False, n_class=6, iterations=100
+                                                   convs=5,  lr_var=0.1)
+                            """
+                            Parallel(n_jobs=1)(
+                                delayed(segment_cnn)(r'X:\temp\temp_Max\Data\Train_data\train\image/stacked_1_0.tif',
+                                                     r'X:\temp\temp_Max\Data\Train_data\train\label/stacked_1_0.png', vector_geom=row, data_path_output=data_path,
+                                                   indexo=index, n_band=3, custom_subsetter=range(10, 21),
+                                                   # custom_subsetter=range(1, 4*12), #custom_subsetter=range(1, 300),# #custom_subsetter=range(1,392),
+                                                   MMU=segmentation_rounds, into_pca=10, PCA=True, #beta_coef=60, beta_jump=1,PCA=False, n_class=6, iterations=100
+                                                   convs=3) for index, row in gdf.iterrows())
+                            """
 
                         if not os.listdir(data_path + 'output/'):
                             print('directory empty')

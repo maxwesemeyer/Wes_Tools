@@ -104,7 +104,7 @@ class Accuracy_Assessment:
 
                     US = 1 - A_int/A_ref
                     OS = 1 - A_int/A_map
-                    Overall = np.sqrt( ((US)**2 + (OS)**2)/2)
+                    Overall = np.sqrt(((US)**2 + (OS)**2)/2)
                     US_temp.append(US)
                     OS_temp.append(OS)
                     Overall_temp.append(Overall)

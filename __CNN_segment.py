@@ -7,7 +7,7 @@ from torch.autograd import Variable
 from skimage import segmentation
 import torch.nn.init
 import imageio
-
+from sklearn.mixture import GaussianMixture
 from .__utils import *
 import cv2
 ########################################################################################################################
@@ -91,9 +91,10 @@ class Segmentation():
                                                                         n_band, MMU=MMU, PCA=True)
 
 
-def segment_cnn(string_to_raster, vector_geom, indexo=np.random.randint(0, 100000),
+def segment_cnn(string_to_raster, string_to_raster_reference, vector_geom, indexo=np.random.randint(0, 100000),
               data_path_output=None, n_band=50, into_pca=50, lr_var=0.1, convs=2,
               custom_subsetter=range(0,80),  MMU=0.05, PCA=True):
+    torch.set_num_threads(10)
     """
     The CNN unsupervised segmentation is based on a paper by Asako Kanezaki;
     "Unsupervised Image Segmentation by Backpropagation"
@@ -120,26 +121,41 @@ def segment_cnn(string_to_raster, vector_geom, indexo=np.random.randint(0, 10000
     data_path = data_path_output + 'output'
 
     field_counter = "{}{}{}{}{}{}{}".format(str(n_band), '_', str(nConv), '_', str(lr_var), '_', str(indexo))
-
+    print(string_to_raster)
     ###########
     # prepare data function does the magic here
     three_d_image, two_d_im_pca, mask_local, gt_gdal, MMU_fail = prepare_data(string_to_raster, vector_geom, custom_subsetter,
                                                                     n_band, MMU=MMU, PCA=PCA, into_pca=into_pca)
+    print(three_d_image.shape)
     # in case grassland area is too small
     if MMU_fail:
-        flat_array = np.zeros(three_d_image.shape[0], three_d_image.shape[1])
+        three_d_image = np.zeros((three_d_image.shape[0], three_d_image.shape[1]))
+        return
     elif three_d_image is None:
         return
 
     else:
 
-        #labels = segmentation.felzenszwalb(three_d_image, scale=0.1)  #
-        labels = segmentation.slic(three_d_image, n_segments=500, compactness=20)
+        with fiona.open(vector_geom, "r") as shapefile:
+            shp = [feature["geometry"] for feature in shapefile]
+        with rasterio.open(string_to_raster_reference) as src:
+            labels, out_transform = rasterio.mask.mask(src, shp, crop=True, nodata=0)
+
+        #labels = labels*mask_local
+        #labels = segmentation.felzenszwalb(three_d_image, scale=3)  #
+        #labels = GaussianMixture(n_components=20).fit_predict(two_d_im_pca)
+        labels = segmentation.slic(three_d_image, n_segments=250, compactness=5)
 
         im = three_d_image
         file_str = "{}{}{}".format(data_path + "/output/out_labels", str(field_counter), "_")
 
         labels_img = np.reshape(labels, (three_d_image.shape[0], three_d_image.shape[1]))
+        plt.imshow(labels_img)
+        plt.show()
+
+        #file_str = "{}{}".format(data_path + "/CNN_", str(field_counter))
+        #WriteArrayToDisk(labels_img, file_str, gt_gdal, polygonite=True, fieldo=field_counter)
+        #return
         # labels__img = np.reshape(labels_, (scaled_shaped.shape[0], scaled_shaped.shape[1]))
         labels_img += 1
         labels_img[mask_local] = 0
@@ -164,14 +180,14 @@ def segment_cnn(string_to_raster, vector_geom, indexo=np.random.randint(0, 10000
         model = MyNet(data.size(1))
 
         # if os.path.exists(data_path + 'cnn_model'):
-        # model = torch.load(data_path + 'cnn_model')
+        #model = torch.load(data_path + 'cnn_model')
         model.train()
         loss_fn = torch.nn.CrossEntropyLoss()
         optimizer = optim.SGD(model.parameters(), lr=lr_var, momentum=0.8)
         label_colours = np.random.randint(255, size=(100, n_band))
         # to create a gif
         images = []
-        for batch_idx in range(100):
+        for batch_idx in range(1000):
             # forwarding
             optimizer.zero_grad()
             output = model(data)[0]
@@ -210,12 +226,12 @@ def segment_cnn(string_to_raster, vector_geom, indexo=np.random.randint(0, 10000
             optimizer.step()
 
             # print (batch_idx, '/', args.maxIter, ':', nLabels, loss.data[0])
-            print(batch_idx, '/', 100, ':', nLabels, loss.item())
+            print(batch_idx, '/', 1000, ':', nLabels, loss.item())
 
             if nLabels < 2:
                 print("nLabels", nLabels, "reached minLabels", 2, ".")
                 break
-        # torch.save(model, data_path + 'cnn_model')
+        torch.save(model, data_path + 'cnn_model')
         # save output image
         if not visualize:
             output = model(data)[0]

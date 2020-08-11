@@ -13,7 +13,8 @@ import re
 import rasterio.mask
 import matplotlib.pyplot as plt
 from .Plots_OBIA import *
-
+import cv2
+from skimage import exposure
 
 
 
@@ -147,103 +148,7 @@ def image_2_2d(image_of_shape):
     return image_2d
 
 
-def prepare_data(raster_l, vector_geom, custom_subsetter=range(5,65), n_band=11, MMU=0.05, PCA=True, into_pca='all'):
-    shp = [vector_geom.geometry]
-    subsetter_tsi = custom_subsetter
-    try:
-        with rasterio.open(raster_l) as src:
-            out_image, out_transform = rasterio.mask.mask(src, shp, crop=True, nodata=0)
-            mask = create_mask_from_ndim(out_image)
 
-            print(out_image[out_image<0].shape)
-            import matplotlib.pyplot as plt
-
-            out_image[out_image < 0] = abs(out_image[out_image<0])
-            print(out_image[out_image<0])
-            out_image = out_image*mask
-            gt_gdal = Affine.to_gdal(out_transform)
-            #################################
-            out_meta = src.meta
-            out_image = out_image.copy() / 10000
-            out_image = out_image[subsetter_tsi, :, :]
-            shape_out = out_image.shape
-            max_valid_pixel = (sum(np.reshape(mask[:, :], (shape_out[1] * shape_out[2])) > 0))
-            print(max_valid_pixel)
-            print('Parcel Area:', max_valid_pixel * 100 / 1000000, ' km²')
-            if max_valid_pixel * 100 / 1000000 < MMU:
-                print('pass, MMU')
-                MMU_fail = True
-
-            else:
-                MMU_fail = False
-            w = np.where(out_image < 0)
-            out_sub = mask[:, :]
-            mask_local = np.where(out_sub == 0)
-            out_image[w] = 0
-            out_image_nan = out_image.copy().astype(dtype=np.float)
-            out_image_nan[w] = np.nan
-
-            if MMU_fail:
-                return np.moveaxis(out_image, 0, 2), None, mask_local, gt_gdal, MMU_fail
-            del out_image
-            three_band_img = out_image_nan
-            del out_image_nan
-            img1 = np.moveaxis(three_band_img, 0, 2)
-
-            re = np.reshape(img1, (img1.shape[0] * img1.shape[1], img1.shape[2]))
-            # re_scale = RobustScaler(quantile_range=(0.8, 1)).fit_transform(re)
-            scaled = (MinMaxScaler(feature_range=(0, 255)).fit_transform(re))
-            # scaled = re
-            scaled_shaped = np.reshape(scaled, (img1.shape))
-            # scaled_shaped = np.square(img1+10)
-
-            ###########
-            # selects bands which have only valid pixels
-            scaled_shaped[np.where(scaled_shaped == 0)] = np.nan
-
-            arg_10 = select_bands_sd(np.moveaxis(scaled_shaped, 2, 0), max_valid_pixels_= max_valid_pixel)
-            wh_nan = np.where(np.isnan(scaled_shaped))
-            scaled_shaped[wh_nan] = 0
-            im = scaled_shaped[:, :, arg_10]
-            im[im == 0] = np.nan
-            scaled_arg_2d = np.reshape(im, (im.shape[0] * im.shape[1], len(arg_10)))
-            im[np.isnan(im)] = 0
-            scaled_arg_2d[np.isnan(scaled_arg_2d)] = 0
-            if PCA:
-                print(arg_10)
-                #################
-                # PCA
-                import matplotlib.pyplot as plt
-
-                if len(arg_10) > n_band:
-                    n_comps = n_band
-                    if into_pca == 'all':
-                        None
-                    else:
-                        scaled_arg_2d = scaled_arg_2d[:, :into_pca]
-                else:
-                    n_comps = len(arg_10)
-                pca = decomposition.PCA(n_components=n_comps)
-                im_pca_2d = pca.fit_transform(scaled_arg_2d)
-                print(pca.explained_variance_ratio_)
-                image_pca = np.reshape(im_pca_2d, (im.shape[0], im.shape[1], n_comps))
-                im_pca_2d[im_pca_2d == 0] = np.nan
-                print('IMAGE PCA', image_pca.shape)
-                # plt.imshow(image_pca[:,:,:3])
-                # plt.show()
-                return image_pca, im_pca_2d, mask_local, gt_gdal, MMU_fail
-            else:
-                print(arg_10)
-                if im[:, :, :].shape[2] < n_band:
-                    print('n_band parameter bigger than bands available; used all available bands')
-                    return im, scaled_arg_2d, mask_local, gt_gdal, MMU_fail
-                else:
-                    print('no pca, used: ', n_band, ' bands')
-                    return im[:, :, :n_band], scaled_arg_2d[:, :n_band], mask_local, gt_gdal, MMU_fail
-
-    except:
-        print('Maybe input shapes did not overlap; Also check subsetter')
-        return None, None, None, None, None
 
 import datetime
 

@@ -75,7 +75,12 @@ def find_matching_raster(vector_path, raster_path, search_string):
 
         if geom.overlaps(extent_):
             candidates.append(rst)
-            candidates_intersect.append(geom.intersection(extent_).area)
+            candidates_intersect.append(geom.buffer(0.0001).intersection(extent_).area)
+            print(candidates, candidates_intersect)
+            i += 1
+        elif geom.within(extent_):
+            candidates.append(rst)
+            candidates_intersect.append(geom.buffer(0.0001).intersection(extent_).area)
             print(candidates, candidates_intersect)
             i += 1
         else:
