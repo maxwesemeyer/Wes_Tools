@@ -10,8 +10,6 @@ import shutil
 import os
 
 
-
-
 def adapt_to_pixels(reference_poly, raster):
     if os.path.exists('X:/temp/temp_Max/Data/temp/'):
         return
@@ -32,15 +30,15 @@ def adapt_to_pixels(reference_poly, raster):
         return joined
 
 
-
-
-def accuracy_prep(reference_poly, segmentation_poly, convert_reference=False, raster=None):
+def accuracy_prep(reference_poly, segmentation_poly, convert_reference, raster):
     with fiona.open(reference_poly) as shapefile:
         shapes_ref = [feature["geometry"] for feature in shapefile]
         if convert_reference:
             """
             eg. convert reference polygons to Sentinel pixel size
+            delete the whole temp folder in case you want to a new file
             """
+            print('converting reference')
             adapt_to_pixels(shapes_ref, raster)
             with fiona.open('X:/temp/temp_Max/Data/temp/adatpted_to_raster.shp') as shapefile:
                 shapes_ref = [feature["geometry"] for feature in shapefile]
@@ -50,13 +48,30 @@ def accuracy_prep(reference_poly, segmentation_poly, convert_reference=False, ra
         feature_list = []
         for features in shapefile:
             if features["properties"]['Cluster_nb'] != 0 and features["properties"]['field_nb'] != None:
-                shapes_seg.append(features["geometry"])
-                values_view = features["properties"].values()
-                value_iterator = iter(values_view)
-                first_value = next(value_iterator)
-                feature_list.append(first_value)
+                geom = shape(features["geometry"]).buffer(distance=0)
+                if geom.area <= 100:
+                    # get rid of single pixels...
+                    continue
+                intersector = None
+                for geoms in shapes_ref:
+                    geom_ref = shape(geoms).buffer(distance=0)
+                    if geom.intersects(geom_ref):
+                        intersector = True
+                        break
+
+                    elif geom.within(geom_ref):
+                        intersector = True
+                        break
+
+                if intersector:
+                    shapes_seg.append(features["geometry"])
+                    values_view = features["properties"].values()
+                    value_iterator = iter(values_view)
+                    first_value = next(value_iterator)
+                    feature_list.append(first_value)
             else:
                 continue
+
     return shapes_ref, shapes_seg, feature_list
 
 
@@ -74,7 +89,8 @@ class Accuracy_Assessment:
         :param segmentation_poly: path to input shapefile
         :return: accuracy values Os, Us, Total
         """
-
+        if len(self.shapes_ref) < 1:
+            return 1, 1, 1
         segment_counter = 1
         # store values for output
         US_out = []
@@ -145,7 +161,8 @@ class Accuracy_Assessment:
                 A_int = shp_seg.intersection(shape(shp_ref)).area
                 A_ref = shape(shp_ref).area
                 A_seg = shp_seg.area
-
+                if A_seg == 100:
+                    print('one pixel only...', A_seg)
                 # areal_overlap_based_criteria =
                 # the area of intersection between a reference polygon and the candidate segment is more than half the area of
                 # either the reference polygon or the candidate segment
@@ -161,6 +178,7 @@ class Accuracy_Assessment:
                     # print(A_int, A_ref / 2, 'second condition', A_int , A_seg / 2)
                     continue
             if np.any(np.array(intersecz_size) > 1):
+
                 PSE = abs(np.sum(np.array(A_seg_list_temp) - np.array(Area_ref_temp))) / np.sum(Area_ref_temp)
                 PSE_list.append(PSE)
             else:
@@ -176,6 +194,72 @@ class Accuracy_Assessment:
 
         return PSE_arr, NSR_total, ED2
 
+    def Liu_new(self):
+        """
+        Number of Segments Ratio; See Liu et al. 2012 or
+        "A review of accuracy assessment for object-based image analysis: From
+        per-pixel to per-polygon approaches" by Ye et al. 2018
+
+        :param reference_poly: path to input shapefile
+        :param segmentation_poly: path to input shapefile
+        :return:
+        """
+
+        # store values for output
+        PSE_list = []
+
+        for shp_ref in self.shapes_ref:
+            # temp lists
+            A_seg_list_temp = []
+            Area_ref_temp = []
+            intersecz_size = []
+
+            for shp_seg in self.shapes_seg:
+                # buffer with zero distance to avoid self intersection error
+                shp_ref = shape(shp_ref).buffer(distance=0)
+                shp_seg = shape(shp_seg).buffer(distance=0)
+                A_int = shp_ref.intersection(shp_seg).area
+                A_ref = shp_ref.area
+                A_seg = shp_seg.area
+                if A_seg == 100:
+                    continue
+                    #print('one pixel only...', A_seg)
+                # areal_overlap_based_criteria =
+                # the area of intersection between a reference polygon and the candidate segment is more than half the area of
+                # either the reference polygon or the candidate segment
+                if A_int == 0:
+                    continue
+                else: #A_int > A_ref / 2 or A_int > A_seg / 2:
+
+                    intersecz_size.append(A_int)
+                    A_seg_list_temp.append(A_seg)
+                    Area_ref_temp.append(A_ref)
+                """
+                else:
+                    print(A_int, A_ref / 2, 'second condition', A_int , A_seg / 2)
+                    continue
+                """
+            if np.any(np.array(intersecz_size) > 1):
+
+                arg_select = np.argmax(np.array(intersecz_size))
+
+                PSE = abs(np.sum(A_seg_list_temp[arg_select] - Area_ref_temp[arg_select]) / Area_ref_temp[arg_select])
+                #print(intersecz_size, arg_select, PSE, Area_ref_temp[arg_select], A_seg_list_temp[arg_select])
+                PSE_list.append(PSE)
+            else:
+                # assuming max error
+                print('should really not happen...')
+                continue
+                PSE_list.append(1)
+
+        PSE_arr = np.array(PSE_list)
+        N_ref = len(self.shapes_ref)
+        N_map = len(self.shapes_seg)
+
+        NSR_total = abs(N_ref - N_map) / N_ref
+        ED2 = np.sqrt((PSE_arr) ** 2 + (NSR_total) ** 2)
+
+        return PSE_arr, NSR_total, ED2
 
     def IoU(self):
         """

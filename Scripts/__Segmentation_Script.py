@@ -9,7 +9,7 @@ import os
 import fiona
 import shutil
 import gdal
-sys.path.append("X:/temp/temp_Max/")
+#sys.path.append("X:/temp/temp_Max/")
 import glob
 import time
 from Wes_Tools.Accuracy_ import *
@@ -56,79 +56,88 @@ def main():
             PCA_ = [False]
             # params_bands = [10, 20, 25]
             params_bands = [11]
-            for PC in PCA_:
-                for par in params_bands:
-                    big_segment_check = False
+            filter_list = ['bilateral', 'clahe', 'no_filter']
+            stencil_list = ["4p"]#, "8p"]
+            segmentation_rounds_list = [[0.5, 0.01], [0.5, 0.01, 0.05], [0.05, 0.5]]
+            segmentation_rounds_list = [[0.5, 0.01, 0.011]]
+            gdf_old = gdf
+            for filter in filter_list:
+                for stncl in stencil_list:
 
-                    for segmentation_rounds in [0.5]:
-                        try:
+                    for seg_round_counter, segmentation_rounds in enumerate(segmentation_rounds_list):
+                        gdf = gdf_old
+                        for round in segmentation_rounds:
+                            try:
+                                shutil.rmtree(data_path + 'output/')
+                            except:
+                                print('')
+                            os.mkdir(data_path + 'output')
+                            print('ROUNd', round)
+                            # does not work within function with parallel os.mkdir
+
+                            # set_global_Cnn_variables(bands=par, convs=betas)
+                            # old subsetter range(1,500)
+                            # 104 168 = April - Ende Oktober
+                            # first round 0.05
+                            # second round 0.5
+                            bands = 11
+                            if round == 0.5:
+                                data_patg_alt = find_matching_raster(vector_path,
+                                                                     'X:/SattGruen/Analyse/Mowing_detection/Data/Raster/S-1/',
+                                                                     ".*[c][k][e][d].*[t][i][f]{1,2}$")
+                                print(data_patg_alt)
+                                clf = segmentation_BaySeg(n_band=bands, custom_subsetter=range(10, 21), _filter=filter,
+                                                       MMU=round, into_pca=11, beta_coef=40, beta_jump=1,
+                                                       PCA=False, n_class=3, iterations=100, neighbourhood=stncl)
+                                Parallel(n_jobs=5)(
+                                    delayed(clf.segment_2)(data_patg_alt, vector_geom=row, data_path_output=data_path,
+                                                       indexo=index) for index, row in gdf.iterrows())
+                            if round == 0.01:
+
+                                different_raster = find_matching_raster(vector_path,
+                                                                        'X:/SattGruen/Analyse/Mowing_detection/Data/Raster/AN3_BN1/',
+                                                                        ".*[N][D][V].*[B][M].*[t][i][f]{1,2}$")
+                                #different_raster = r'H:\Grassland\EVI\X0068_Y0042/2017-2019_001-365_HL_TSA_LNDLG_EVI_TSS.tif'
+                                #different_raster = r'X:\temp\temp_Max/TS_X0068_Y0042.tif'
+                                clf = segmentation_BaySeg(n_band=100, custom_subsetter=range(2, 11), _filter=filter,
+                                                      MMU=round, into_pca=40, beta_coef=50, beta_jump=1.5,
+                                                      PCA=False, n_class=3, iterations=100)
+                                Parallel(n_jobs=5)(
+                                    delayed(clf.segment_2)(different_raster, vector_geom=row, data_path_output=data_path,
+                                                       indexo=index) for index, row in gdf.iterrows())
+
+                            if round == 0.011:
+
+                                different_raster = find_matching_raster(vector_path,
+                                                                        'X:/SattGruen/Analyse/Mowing_detection/Data/Raster/AN3_BN1/',
+                                                                        ".*[N][D][V].*[S][S].*[t][i][f]{1,2}$")
+                                #different_raster = r'H:\Grassland\EVI\X0068_Y0042/2017-2019_001-365_HL_TSA_LNDLG_EVI_TSS.tif'
+                                #different_raster = r'X:\temp\temp_Max/TS_X0068_Y0042.tif'
+                                clf = segmentation_BaySeg(n_band=40, custom_subsetter=range(10, 61), _filter=filter,
+                                                      MMU=round, into_pca=40, beta_coef=50, beta_jump=1.5,
+                                                      PCA=False, n_class=5, iterations=100)
+                                Parallel(n_jobs=5)(
+                                    delayed(clf.segment_2)(different_raster, vector_geom=row, data_path_output=data_path,
+                                                       indexo=index) for index, row in gdf.iterrows())
+                            if not os.listdir(data_path + 'output/'):
+                                print('directory empty')
+                            else:
+                                joined = join_shapes_gpd(data_path + 'output/', own_segmentation='own')
+                                gdf = joined
+                            if os.path.exists(data_path + 'joined'):
+                                print('output directory already exists')
+
+                            else:
+                                os.mkdir(data_path + 'joined')
+                            print('joined data frame:', joined)
                             shutil.rmtree(data_path + 'output/')
-                        except:
-                            print('')
-                        os.mkdir(data_path + 'output')
-                        print('ROUNd', segmentation_rounds)
-                        # does not work within function with parallel os.mkdir
 
-                        # set_global_Cnn_variables(bands=par, convs=betas)
-                        # old subsetter range(1,500)
-                        # 104 168 = April - Ende Oktober
-                        # first round 0.05
-                        # second round 0.5
-                        if segmentation_rounds == 0.5:
-                            data_patg_alt = find_matching_raster(vector_path,
-                                                                 'X:/SattGruen/Analyse/Mowing_detection/Data/Raster/S-1/',
-                                                                 ".*[c][k][e][d].*[t][i][f]{1,2}$")
-                            print(data_patg_alt)
-                            c = segmentation()
-                            Parallel(n_jobs=5)(
-                                delayed(segmentation(n_band=par, custom_subsetter=range(10, 21),
-
-                                                   MMU=segmentation_rounds, into_pca=covs, beta_coef=50, beta_jump=1.5,
-                                                   PCA=PC, n_class=3, iterations=100).segment_2())(data_patg_alt, vector_geom=row, data_path_output=data_path,
-                                                   indexo=index) for index, row in gdf.iterrows())
-                        if segmentation_rounds == 0.05 or segmentation_rounds == 0.25:
-
-                            different_raster = find_matching_raster(vector_path,
-                                                                    'X:/SattGruen/Analyse/Mowing_detection/Data/Raster/AN3_BN1/',
-                                                                    ".*[N][D][V].*[B][M].*[t][i][f]{1,2}$")
-                            different_raster = find_matching_raster(vector_path,
-                                                                 'X:/SattGruen/Analyse/Mowing_detection/Data/Raster/S-1/',
-                                                                 ".*[c][k][e][d].*[t][i][f]{1,2}$")
-
-                            segment_2(different_raster, vector_geom=vector_path, data_path_output=data_path,
-                                                   indexo=200, n_band=11, custom_subsetter=range(10, 21),
-                                                   # custom_subsetter=range(1, 4*12), #custom_subsetter=range(1, 300),# #custom_subsetter=range(1,392),
-                                                   MMU=segmentation_rounds, into_pca=10, PCA=False, #beta_coef=60, beta_jump=1,PCA=False, n_class=6, iterations=100
-                                                   convs=5,  lr_var=0.1)
-                            """
-                            Parallel(n_jobs=1)(
-                                delayed(segment_cnn)(r'X:\temp\temp_Max\Data\Train_data\train\image/stacked_1_0.tif',
-                                                     r'X:\temp\temp_Max\Data\Train_data\train\label/stacked_1_0.png', vector_geom=row, data_path_output=data_path,
-                                                   indexo=index, n_band=3, custom_subsetter=range(10, 21),
-                                                   # custom_subsetter=range(1, 4*12), #custom_subsetter=range(1, 300),# #custom_subsetter=range(1,392),
-                                                   MMU=segmentation_rounds, into_pca=10, PCA=True, #beta_coef=60, beta_jump=1,PCA=False, n_class=6, iterations=100
-                                                   convs=3) for index, row in gdf.iterrows())
-                            """
-
-                        if not os.listdir(data_path + 'output/'):
-                            print('directory empty')
-                        else:
-                            joined = join_shapes_gpd(data_path + 'output/', own_segmentation='own')
-                            gdf = joined
-                        if os.path.exists(data_path + 'joined'):
-                            print('output directory already exists')
-
-                        else:
-                            os.mkdir(data_path + 'joined')
-                        print('joined data frame:', joined)
-                        shutil.rmtree(data_path + 'output/')
-
-                    field_counter = "{}{}{}{}{}{}{}{}".format(str(PC), "_", str(par), "_", str(covs), '_', box_counter,
-                                                              "_" + str(another_counter) + "_")
-                    box_counter += 1
-                    another_counter += 10
-                    print(field_counter)
-                    joined.to_file(data_path + 'joined/threetepSeg_s1_s2_FBM_' + field_counter + '.shp')
+                        field_counter = "{}{}{}{}{}{}{}{}".format(str(filter), "_", str(stncl), "_", str(bands), '_',
+                                                                  seg_round_counter, "_" + str(another_counter) + "_")
+                        box_counter += 1
+                        another_counter += 10
+                        print(field_counter)
+                        joined.to_file(data_path + 'joined/threesteps1tssfbm_morecl01' + field_counter + '.shp')
 
 
 def aggregate_main(inputshape, data_patg_alt):

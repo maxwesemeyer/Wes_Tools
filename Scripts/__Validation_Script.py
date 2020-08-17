@@ -21,7 +21,7 @@ if __name__ == '__main__':
     data_path = 'X:/temp/temp_Max/Data/'
     data_patg_alt = 'X:/SattGruen/Analyse/GLSEG/Raster'
     raster_path = 'X:/SattGruen/Analyse/GLSEG/Raster/X0068_Y0042/2018-2018_001-365_LEVEL4_TSA_SEN2L_NDV_TSI.tif'
-    vector_path = data_path + 'Vector/Bewrt_paulinaue_3035.gpkg'
+    vector_path = data_path + 'Vector/Paulienenaue_TF.shp'
     #vector_path = data_path + 'Vector/Paulienenaue_TF.shp'
 
     #plot_shapefile(data_path + 'Vector/result_.gpkg', raster_path, error_plot=True, trample_check=False, custom_subsetter=range(1, 60))
@@ -31,18 +31,34 @@ if __name__ == '__main__':
     pse_list = []
     iou_list = []
     overall_list = []
-    clinton_list = []
+    OS_list = []
+    US_list = []
+    ed2_list = []
+    pse_list = []
+    nsr_list = []
+
 
     for shapes in list_of_shapes:
         #pse = Accuracy_Assessment(vector_path, shapes).IoU()
-        pse, nsr, ed2 = Accuracy_Assessment(vector_path, shapes, convert_reference=True, raster=raster_path).Liu()
-        OS, US, Overall = Accuracy_Assessment(vector_path, shapes, convert_reference=True, raster=raster_path).Clinton()
-        iou = Accuracy_Assessment(vector_path, shapes, convert_reference=True, raster=raster_path).IoU()
-        print((np.array(iou)))
+        acc_ass = Accuracy_Assessment(vector_path, shapes, convert_reference=True, raster=raster_path)
+        pse, nsr, ed2 = acc_ass.Liu_new()
+        OS, US, Overall = acc_ass.Clinton()
+        iou = acc_ass.IoU()
+        #print((np.array(iou)))
         print(shapes, np.mean(np.array(OS)), np.mean(np.array(US)), np.mean(np.array(Overall)))
-        pse_list.append(np.mean(np.array(ed2)))
+        print('PSE', np.mean(np.array(pse)), np.mean(np.array(nsr)), np.mean(np.array(ed2)))
+
         iou_list.append(np.mean(np.array(iou)))
-    dict = {'name': list_of_shapes, 'IoU': iou_list, 'Clinton': pse_list}
+        overall_list.append(np.mean(np.array(Overall)))
+        OS_list.append(np.mean(np.array(OS)))
+        US_list.append(np.mean(np.array(US)))
+
+        ed2_list.append(np.mean(np.array(ed2)))
+        nsr_list.append(np.mean(np.array(nsr)))
+        pse_list.append(np.mean(np.array(pse)))
+
+    dict = {'name': list_of_shapes, 'IoU': iou_list, 'pse': pse_list, 'nsr': nsr_list, 'ed2': ed2_list,
+            'OS': OS_list, 'US': US_list, 'Overall OS US': overall_list}
     score_frame = pd.DataFrame(dict)
     score_frame.to_csv(data_path + 'scores.csv')
     print(score_frame)
