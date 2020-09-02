@@ -5,9 +5,6 @@ from scipy.ndimage.filters import generic_filter
 from scipy import ndimage
 from scipy.stats import mode
 from .__utils import *
-
-# $ conda install --name <conda_env_name> -c <channel_name> <package_name>
-sys.path.append("O:/Student_Data/Wesemeyer/Master/conda/myenv/Lib/site-packages/bayseg-master/bayseg")
 import bayseg
 
 
@@ -79,10 +76,19 @@ class segmentation_BaySeg:
                 max_valid_pixel = (sum(np.reshape(mask[:, :], (shape_out[1] * shape_out[2])) > 0))
                 print('Parcel Area:', max_valid_pixel * 100 / 1000000, ' km²')
 
+                import scipy
+                import matplotlib.pyplot as plt
+                mass_center = scipy.ndimage.measurements.center_of_mass(mask)
+                print(mass_center)
+                print(mask[int(mass_center[0]), int(mass_center[1])])
+
+
                 if max_valid_pixel * 100 / 1000000 < self.MMU:
                     print('pass, MMU')
                     MMU_fail = True
-
+                elif not mask[int(mass_center[0]), int(mass_center[1])]:
+                    print('pass, shape fail')
+                    MMU_fail = True
                 else:
                     MMU_fail = False
                 w = np.where(out_image < 0)

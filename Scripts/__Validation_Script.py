@@ -30,6 +30,7 @@ if __name__ == '__main__':
     print(list_of_shapes)
     pse_list = []
     iou_list = []
+    osq_list = []
     overall_list = []
     OS_list = []
     US_list = []
@@ -43,12 +44,13 @@ if __name__ == '__main__':
         acc_ass = Accuracy_Assessment(vector_path, shapes, convert_reference=True, raster=raster_path)
         pse, nsr, ed2 = acc_ass.Liu_new()
         OS, US, Overall = acc_ass.Clinton()
-        iou = acc_ass.IoU()
+        iou, osq = acc_ass.IoU()
         #print((np.array(iou)))
         print(shapes, np.mean(np.array(OS)), np.mean(np.array(US)), np.mean(np.array(Overall)))
-        print('PSE', np.mean(np.array(pse)), np.mean(np.array(nsr)), np.mean(np.array(ed2)))
+        print('PSE', np.mean(np.array(pse)), np.mean(np.array(nsr)), np.mean(np.array(ed2)), 'OSQ:', osq)
 
         iou_list.append(np.mean(np.array(iou)))
+        osq_list.append(osq)
         overall_list.append(np.mean(np.array(Overall)))
         OS_list.append(np.mean(np.array(OS)))
         US_list.append(np.mean(np.array(US)))
@@ -57,7 +59,7 @@ if __name__ == '__main__':
         nsr_list.append(np.mean(np.array(nsr)))
         pse_list.append(np.mean(np.array(pse)))
 
-    dict = {'name': list_of_shapes, 'IoU': iou_list, 'pse': pse_list, 'nsr': nsr_list, 'ed2': ed2_list,
+    dict = {'name': list_of_shapes, 'IoU': iou_list, 'osq':osq_list, 'pse': pse_list, 'nsr': nsr_list, 'ed2': ed2_list,
             'OS': OS_list, 'US': US_list, 'Overall OS US': overall_list}
     score_frame = pd.DataFrame(dict)
     score_frame.to_csv(data_path + 'scores.csv')

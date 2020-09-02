@@ -270,16 +270,18 @@ class Accuracy_Assessment:
 
         # store values for output
         IUC_list = []
+        shp_area_list = []
         feature_counter = 0
         for shp_seg in self.shapes_seg:
             # temp lists
             feature_counter += 1
             Union_temp = []
             intersecz_size = []
-
+            shp_seg_area_temp = []
             for shp_ref in self.shapes_ref:
                 # buffer with zero distance to avoid self intersection error
                 shp_seg = shape(shp_seg).buffer(distance=0)
+                shp_seg_area = shp_seg.area
                 A_int = shp_seg.intersection(shape(shp_ref)).area
                 A_un = shp_seg.union(shape(shp_ref)).area
                 if A_int == 0:
@@ -287,14 +289,18 @@ class Accuracy_Assessment:
                 else:
                     Union_temp.append(A_un)
                     intersecz_size.append(A_int)
+                    shp_seg_area_temp.append(shp_seg_area)
             if np.any(np.array(intersecz_size) > 1):
 
                 index = np.argmax(np.array(intersecz_size))
                 IUC = np.array(intersecz_size[index])/np.array(Union_temp)[index]
                 IUC_list.append(IUC)
+                shp_area_list.append(shp_seg_area_temp[index])
             else:
                 # assuming max error
                 IUC_list.append(0)
+                shp_area_list.append(0)
         IUC_arr = np.array(IUC_list)
-        return IUC_arr
+        OSQ_arr = np.sum(np.array(shp_area_list)*IUC_arr)/np.sum(shp_area_list)
+        return IUC_arr, OSQ_arr
 

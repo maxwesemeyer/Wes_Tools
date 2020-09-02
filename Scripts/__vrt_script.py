@@ -14,11 +14,11 @@ from Wes_Tools.create_vrt import *
 
 
 def main():
-    data_path_input = r'\\141.20.140.91\NAS_Rodinia\Croptype\Mowing2018'
+    data_path_input = r'\\141.20.140.91\NAS_Rodinia\Croptype\Mowing_2017/'
     file_path_raster = Tif_finder(data_path_input, ".*[u][m].*[t][i][f]{1,2}$")
     print(file_path_raster)
     vrt_options = gdal.BuildVRTOptions(separate=False)
-    gdal.BuildVRT(r'\\141.20.140.91/NAS_Rodinia/Croptype/Mowing2018/vrt/' + 'vrt_SUM.vrt', file_path_raster, options=vrt_options)
+    gdal.BuildVRT(r'\\141.20.140.91/NAS_Rodinia/Croptype/Mowing_2017/vrt/' + 'vrt_SUM.vrt', file_path_raster, options=vrt_options)
 
 
 def main_2():
@@ -61,6 +61,10 @@ def main_stack(folders_BRB):
 
 
 if __name__ == '__main__':
+
+    main()
+    """
+    
     folders_BRB = [x[0] for x in os.walk(r'X:\SattGruen\Analyse\Mowing_detection\Data\Raster\AN3_BN1\S-1/')]
     print(folders_BRB[1:])
     main_stack(folders_BRB[1:])
@@ -73,7 +77,7 @@ if __name__ == '__main__':
                    "X0071_Y0047", "X0072_Y0040", "X0072_Y0042", "X0072_Y0043", "X0072_Y0044", "X0072_Y0045", "X0072_Y0046",
                    "X0072_Y0047", "X0073_Y0044", "X0073_Y0045", "X0073_Y0046"}
 
-    """
+    
     data_path_input = "X:/SattGruen/Analyse/GLSEG/Raster/landsat_sentinel/"
     file_path_raster = Tif_finder(data_path_input, "^2016.*[S][.][t][i][f]{1,2}$")
     print(file_path_raster)
