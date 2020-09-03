@@ -47,7 +47,7 @@ def main():
                 clf = segmentation_BaySeg(n_band=11, custom_subsetter=range(10, 21), _filter=filter_,
                                           MMU=roundo, into_pca=11, beta_coef=40, beta_jump=1,
                                           PCA=False, n_class=4, iterations=100, neighbourhood=stencil_)
-                Parallel(n_jobs=5)(
+                Parallel(n_jobs=2)(
                     delayed(clf.segment_2)(data_patg_alt, vector_geom=row, data_path_output=data_path,
                                            indexo=index) for index, row in gdf.iterrows())
             if roundo == 0.01:
@@ -59,7 +59,7 @@ def main():
                 clf = segmentation_BaySeg(n_band=n_band, custom_subsetter=range(2, 11), _filter=filter_,
                                           MMU=roundo, into_pca=40, beta_coef=50, beta_jump=1.5,
                                           PCA=False, n_class=n_class, iterations=100)
-                Parallel(n_jobs=5)(
+                Parallel(n_jobs=3)(
                     delayed(clf.segment_2)(different_raster, vector_geom=row, data_path_output=data_path,
                                            indexo=index) for index, row in gdf.iterrows())
 
@@ -72,7 +72,7 @@ def main():
                 clf = segmentation_BaySeg(n_band=n_band, custom_subsetter=range(10, 61), _filter=filter_,
                                           MMU=roundo, into_pca=40, beta_coef=50, beta_jump=1.5,
                                           PCA=False, n_class=n_class, iterations=100)
-                Parallel(n_jobs=5)(
+                Parallel(n_jobs=3)(
                     delayed(clf.segment_2)(different_raster, vector_geom=row, data_path_output=data_path,
                                            indexo=index) for index, row in gdf.iterrows())
 
