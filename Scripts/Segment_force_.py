@@ -1,3 +1,8 @@
+import sys
+sys.path.append(r'\\141.20.140.91/SAN/_ProjectsII/Grassland/temp/temp_Max/Tools')
+import os
+os.environ['QT_QPA_PLATFORM']='offscreen'
+
 from joblib import Parallel, delayed
 import time
 from Wes_Tools.__geometry_tools import *
@@ -8,7 +13,7 @@ from Wes_Tools.__CNN_segment import *
 from Wes_Tools.__Join_results import *
 from Wes_Tools.__geometry_tools import *
 from affine import Affine
-sys.path.append(r'\\141.20.140.91/SAN/_ProjectsII/Grassland/temp/temp_Max/Tools')
+
 
 def main():
     prefix_network_drive = r'\\141.20.140.91/SAN/_ProjectsII/Grassland/'

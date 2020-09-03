@@ -225,7 +225,7 @@ class segmentation_BaySeg:
             # print('PROBSHAPE: ', prob.shape)
             file_str = "{}{}{}".format(data_patho + "/diagnostics", "_stack_", str(field_counter))
             print(file_str)
-            ie = clf.diagnostics_plot(transpose=True, save=True, path_to_save=file_str + '.png', ie_return=True)
+            #ie = clf.diagnostics_plot(transpose=True, save=True, path_to_save=file_str + '.png', ie_return=True)
 
             labels = clf.labels[-1, :]
             print('SHAPE LABELS', labels.shape)
