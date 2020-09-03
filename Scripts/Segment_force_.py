@@ -1,7 +1,14 @@
 from joblib import Parallel, delayed
 import time
 from Wes_Tools.__geometry_tools import *
-
+from Wes_Tools.Accuracy_ import *
+from Wes_Tools.Plots_OBIA import *
+from Wes_Tools.__Segmentor import *
+from Wes_Tools.__CNN_segment import *
+from Wes_Tools.__Join_results import *
+from Wes_Tools.__geometry_tools import *
+from affine import Affine
+sys.path.append(r'\\141.20.140.91/SAN/_ProjectsII/Grassland/temp/temp_Max/Tools')
 
 def main():
     prefix_network_drive = r'\\141.20.140.91/SAN/_ProjectsII/Grassland/'
