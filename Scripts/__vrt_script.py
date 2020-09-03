@@ -18,8 +18,17 @@ def main():
     file_path_raster = Tif_finder(data_path_input, ".*[u][m].*[t][i][f]{1,2}$")
     print(file_path_raster)
     vrt_options = gdal.BuildVRTOptions(separate=False)
-    gdal.BuildVRT(r'\\141.20.140.91/NAS_Rodinia/Croptype/Mowing_2017/vrt/' + 'vrt_SUM.vrt', file_path_raster, options=vrt_options)
+    #gdal.BuildVRT(r'\\141.20.140.91/NAS_Rodinia/Croptype/Mowing_2017/vrt/' + 'vrt_SUM.vrt', file_path_raster, options=vrt_options)
 
+
+def Maj_filter_output():
+    data_path_input = r'\\141.20.140.91\NAS_Rodinia\Croptype\Mowing_2017/'
+    file_path_raster = Tif_finder(data_path_input, ".*[u][m].*[t][i][f]{1,2}$")
+
+    majority_f()
+    print(file_path_raster)
+    vrt_options = gdal.BuildVRTOptions(separate=False)
+    #gdal.BuildVRT(r'\\141.20.140.91/NAS_Rodinia/Croptype/Mowing_2017/vrt/' + 'vrt_SUM.vrt', file_path_raster, options=vrt_options)
 
 def main_2():
     data_path_input = "X:/SattGruen/Analyse/GLSEG/Raster/spectemps1/"

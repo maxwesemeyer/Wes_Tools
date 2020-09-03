@@ -9,7 +9,6 @@ import bayseg
 
 
 class segmentation_BaySeg:
-
     def __init__(self, beta_coef=1, beta_jump=0.1, n_band=50, custom_subsetter=range(0, 80), MMU=0.05, PCA=True,
                  into_pca='all', n_class=4, iterations=70, _filter='bilateral', neighbourhood="4p"):
         self.beta_coef = beta_coef

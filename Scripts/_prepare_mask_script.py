@@ -65,14 +65,14 @@ if __name__ == '__main__':
             continue
 """
     ##### i
-    adapt_to_raods = False
+    adapt_to_raods = True
 
     gdf_roads = gpd.GeoDataFrame(
-        pd.concat([gpd.read_file(r'X:\temp\temp_Max\Qgis/lines.gpkg')],
+        pd.concat([gpd.read_file(r'X:\Data\Vector\OSM\4mw\Roads_small/germany-highway-buffer-epsg3035.shp')],
                   ignore_index=True),
         crs="EPSG:3035")
-    gdf_roads['geometry'] = gdf_roads.unary_union
-    gdf_roads.to_file(r'X:\temp\temp_Max\Qgis/lines_unarunion.gpkg')
+    #gdf_roads['geometry'] = gdf_roads.unary_union
+    #gdf_roads.to_file(r'X:\temp\temp_Max\Qgis/lines_unarunion.gpkg')
     if adapt_to_raods:
         import glob
         dp_data = 'X:/SattGruen/Analyse/Mowing_detection/Data/Raster/AN3_BN1/'
