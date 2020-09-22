@@ -78,8 +78,8 @@ if __name__ == '__main__':
         dp_data = 'X:/SattGruen/Analyse/Mowing_detection/Data/Raster/AN3_BN1/'
         vector_paths = glob.glob(dp_data + '*.shp', recursive=True)
         vector_paths = Shape_finder(dp_data)
-        vector_paths = vector_paths[4:]
-        print(vector_paths)
+        vector_paths = vector_paths[11:]
+        print(len(vector_paths))
         another_counter = 0
 
         for vector_path in vector_paths:
