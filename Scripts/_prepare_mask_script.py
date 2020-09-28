@@ -18,7 +18,6 @@ from Wes_Tools.__geometry_tools import *
 from affine import Affine
 
 if __name__ == '__main__':
-
     # for each raster in rasterfiles
     # clip alkis mask to raster file
     # write to disk an polygonize
@@ -63,7 +62,25 @@ if __name__ == '__main__':
             df2.to_file(vector)
         except:
             continue
-"""
+    """
+    ####
+    # drop duplicate geometries
+
+    vector_paths = Shape_finder('X:/SattGruen/Analyse/Mowing_detection/Data/Raster/AN3_BN1/')
+    print(vector_paths)
+    for vector in vector_paths:
+        print(vector)
+        if vector:
+            df2 = gpd.GeoDataFrame(pd.concat([gpd.read_file(vector)], ignore_index=True),
+                                   crs="EPSG:3035").drop_duplicates(subset='geometry')
+            indexNames = df2[df2['Cluster_nb'] == 0].index
+            df2.drop(indexNames, inplace=True)
+            df2 = df2.explode().reset_index(drop=True)
+            df2.to_file(vector)
+        #except:
+        #    continue
+
+    """
     ##### i
     adapt_to_raods = True
 
@@ -90,4 +107,4 @@ if __name__ == '__main__':
             gdf_ = gpd.overlay(gdf_, gdf_roads, how='difference')
             gdf_.to_file(vector_path)
 
-
+"""

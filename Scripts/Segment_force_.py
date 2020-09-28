@@ -1,8 +1,7 @@
 import sys
 sys.path.append(r'\\141.20.140.91/SAN/_ProjectsII/Grassland/temp/temp_Max/Tools')
 import os
-os.environ['QT_QPA_PLATFORM']='offscreen'
-
+import glob
 from joblib import Parallel, delayed
 import time
 from Wes_Tools.__geometry_tools import *
@@ -20,8 +19,9 @@ def main():
     data_path = prefix_network_drive + 'temp/temp_Max/Data/'
 
     dp_data = prefix_network_drive + 'SattGruen/Analyse/Mowing_detection/Data/Raster/AN3_BN1/'
-    vector_paths = Shape_finder(dp_data)
-    vector_paths = vector_paths[1:]
+    vector_paths = Shape_finder(dp_data, ".*[m][a][s][k].*[s][h][p]{1,2}$")
+    vector_paths = vector_paths[8:]
+    print(vector_paths)
     another_counter = 0
     for vector_path in vector_paths:
         force_tile = vector_path.split('/')[-2]
@@ -50,7 +50,6 @@ def main():
                 print('')
             os.mkdir(data_path + 'output')
             print('ROUNd', roundo)
-
 
             if roundo == 0.5:
                 data_patg_alt = find_matching_raster(vector_path,

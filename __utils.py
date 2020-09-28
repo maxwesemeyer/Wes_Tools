@@ -18,14 +18,14 @@ from skimage import exposure
 
 
 
-def Shape_finder(input_path):
+def Shape_finder(input_path, pattern=".*[s][h][p]{1,2}$"):
     # Alternative...
     #print(glob.glob(data_path + '*.shp'))
     data_path_input = input_path
     file_path_raster = []
     for root, dirs, files in os.walk(data_path_input, topdown=True):
         for file in files:
-            if re.match(".*[s][h][p]{1,2}$", file):
+            if re.match(pattern, file):
                 file_path_raster.append(str(root + '/' + file))
             else:
                 continue

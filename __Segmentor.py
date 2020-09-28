@@ -81,13 +81,12 @@ class segmentation_BaySeg:
                 print(mass_center)
                 print(mask[int(mass_center[0]), int(mass_center[1])])
 
-
                 if max_valid_pixel * 100 / 1000000 < self.MMU:
                     print('pass, MMU')
                     MMU_fail = True
-                elif not mask[int(mass_center[0]), int(mass_center[1])]:
-                    print('pass, shape fail')
-                    MMU_fail = True
+                #elif not mask[int(mass_center[0]), int(mass_center[1])]:
+                #    print('pass, shape fail')
+                #    MMU_fail = True
                 else:
                     MMU_fail = False
                 w = np.where(out_image < 0)
@@ -213,23 +212,20 @@ class segmentation_BaySeg:
         else:
 
             mino = bayseg.bic(two_d_im_pca, self.n_class)
-
             ############################################################
-
-            print(three_d_image.shape, two_d_im_pca.shape)
             itero = self.iterations
             clf = bayseg.BaySeg(three_d_image, mino, beta_init=self.beta_coef, stencil=self.stncl, normalize=False)
-            clf.fit(itero, beta_jump_length=self.beta_jump)
+            try:
+                clf.fit(itero, beta_jump_length=self.beta_jump)
 
-            # shape: n_iter, flat image, n_classes
-            # print('PROBSHAPE: ', prob.shape)
-            file_str = "{}{}{}".format(data_patho + "/diagnostics", "_stack_", str(field_counter))
-            print(file_str)
-            #ie = clf.diagnostics_plot(transpose=True, save=True, path_to_save=file_str + '.png', ie_return=True)
-
-            labels = clf.labels[-1, :]
-            print('SHAPE LABELS', labels.shape)
-
+                # shape: n_iter, flat image, n_classes
+                # print('PROBSHAPE: ', prob.shape)
+                file_str = "{}{}{}".format(data_patho + "/diagnostics", "_stack_", str(field_counter))
+                #ie = clf.diagnostics_plot(transpose=True, save=True, path_to_save=file_str + '.png', ie_return=True)
+                labels = clf.labels[-1, :]
+            except:
+                labels = np.zeros(three_d_image.shape[0] * three_d_image.shape[1])
+                labels[labels == 0] = 1
         # imageio.mimsave(data_path + 'bayseg.gif', images_iters)
         file_str = "{}{}{}".format(data_patho + "/Bayseg_", str(field_counter), "_")
         # file_str_ie = "{}{}{}".format(data_patho + "/Bayseg_ie_", str(field_counter), "_")
@@ -243,7 +239,6 @@ class segmentation_BaySeg:
         labels_img += 1
         labels_img[mask_local] = 0
         labels = labels_img.reshape(three_d_image.shape[0] * three_d_image.shape[1])
-        print(three_d_image.shape, labels.shape)
         # labels_img = function(labels_img)
         # plt.imshow(labels_img)
         # plt.show()
