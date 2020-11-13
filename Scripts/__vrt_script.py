@@ -11,7 +11,7 @@ from Wes_Tools.__Segmentor import *
 from Wes_Tools.__CNN_segment import *
 from Wes_Tools.__Join_results import *
 from Wes_Tools.create_vrt import *
-
+import datetime
 
 def main():
     data_path_input = r'\\141.20.140.91\NAS_Rodinia\Croptype\Mowing_2017/'
@@ -69,9 +69,45 @@ def main_stack(folders_BRB):
             create_stack(file_path_raster,out_string , n_bands=1, custom_subsetter=range(1, 2))
 
 
-if __name__ == '__main__':
+def coherence_stack(in_path, out_path):
+    Tifs = Tif_finder(in_path)
+    force_tiles = []
+    asc_dec_list = []
+    # get a list of all force tiles that are in folder
+    for raster in Tifs:
+        file_name = raster.split('/')[-1]
+        file_name_substr = file_name.split('_')
+        asc_dec_list.append(file_name_substr[-2])
+        force_tiles.append(file_name_substr[0] + '_' + file_name_substr[1])
+    # iterate through force tiles and Asc/Dec and create a list of all rasters that should be written in one stack
+    # also create a list of the respective dates for the MetaData
+    for force_tile in ['X0066_Y0042']:#np.unique(force_tiles):
+        print(force_tile)
+        subs_force = [k for k in Tifs if force_tile in k]
+        for asc_dec in np.unique(asc_dec_list):
+            subs_force_asc = [k for k in subs_force if asc_dec in k]
+            date_list = []
+            for path_strings in subs_force_asc:
+                file_name = path_strings.split('/')[-1]
+                file_name_substr = file_name.split('_')
+                dateo = datetime.datetime.strptime(str(file_name_substr[2]), '%Y%m%d')
+                # append every date twice because we have two bands per image... the easy way
+                date_list.append(dateo)
+                date_list.append(dateo)
+                # print(dateo.strftime('%Y-%m-%d'))
+            out_string = out_path + force_tile + '/coherence_stack_2018_' + asc_dec + '.tif'
+            create_stack(subs_force_asc, out_string, n_bands=2, custom_subsetter=range(1,3))
+            Open_raster_add_meta_new_data(out_string, date_list)
+            print(date_list, np.argsort(date_list))
+            print(subs_force_asc, 'Right subset')
 
-    main()
+
+
+
+if __name__ == '__main__':
+    in_ = r'\\141.20.140.91/SAN/_ProjectsII/Grassland/SattGruen/Analyse/Mowing_detection/Data/Raster/coherence_extract'
+    out = r'\\141.20.140.91\SAN\_ProjectsII\Grassland\SattGruen\Analyse\Mowing_detection\Data/Raster/AN3_BN1/'
+    coherence_stack(in_, out)
     """
     
     folders_BRB = [x[0] for x in os.walk(r'X:\SattGruen\Analyse\Mowing_detection\Data\Raster\AN3_BN1\S-1/')]

@@ -10,6 +10,14 @@ import pandas as pd
 import gdal
 from rasterio.mask import mask
 from sklearn.linear_model import LinearRegression
+from Wes_Tools.Accuracy_ import *
+from Wes_Tools.Plots_OBIA import *
+from Wes_Tools.__Segmentor import *
+from Wes_Tools.__CNN_segment import *
+from Wes_Tools.__Join_results import *
+from Wes_Tools.__geometry_tools import *
+from Wes_Tools.__utils import *
+from hubdc.core import *
 
 def nan_helper(y):
     return np.isnan(y), lambda z: z.nonzero()[0]
@@ -220,10 +228,17 @@ def DistancoTron(vector_data, raster_data, own_segmentation=False):
             i += 1
 
 
-def aggregator(raster_NDV, shapei, indexo=np.random.randint(0, 10000), raster_clim=None, ie_raster=None, subsetter=range(146, 218)):
+def aggregator(raster_NDV, shapei, indexo=np.random.randint(0, 10000), raster_clim=None, ie_raster=None, yr=2018):
     geo = shapei.geometry
     index = indexo
-    print(index)
+    print(shapei)
+    for ft in shapei:
+        print(ft)
+    matched = find_matching_raster(shapei.geometry, raster_NDV, ".*[E][V][I].*[S][S].*[t][i][f]{1,2}$")
+    rst_EVI = openRasterDataset(matched)
+    rst_decDate_arr = np.array(rst_EVI.metadataItem(key='wavelength', domain='TIMESERIES', dtype=float))
+    print(rst_decDate_arr)
+    subsetter = np.where((rst_decDate_arr<yr) & (yr < rst_decDate_arr))
     if raster_clim:
         with rasterio.open(raster_clim) as src:
             out_image, out_transform = rasterio.mask.mask(src, [geo], crop=True)
@@ -242,15 +257,14 @@ def aggregator(raster_NDV, shapei, indexo=np.random.randint(0, 10000), raster_cl
             if np.isnan(row_mean_ie):
                 row_mean_ie = [0]
 
-    with rasterio.open(raster_NDV) as src:
+    with rasterio.open(matched) as src:
         out_image, out_transform = rasterio.mask.mask(src, [geo], crop=True)
         print(out_image.shape)
-        subsetter_tsi = subsetter
 
         if subsetter is None:
             out = out_image[:, :, :]
         else:
-            out = out_image[subsetter_tsi, :, :]
+            out = out_image[:,:,:]
 
         out = out.astype(dtype=np.float)
         out[out < 0] = np.nan
@@ -268,4 +282,4 @@ def aggregator(raster_NDV, shapei, indexo=np.random.randint(0, 10000), raster_cl
         l.append(index)
         Serio = pd.Series(l)
         print(Serio)
-        return Serio
+        return Serio, rst_decDate_arr

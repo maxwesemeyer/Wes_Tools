@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 from .Plots_OBIA import *
 import cv2
 from skimage import exposure
-
+from hubdc.core import *
 
 
 def Shape_finder(input_path, pattern=".*[s][h][p]{1,2}$"):
@@ -66,7 +66,9 @@ def WriteArrayToDisk(array, data_path_name_str, gt, polygonite=False, fieldo=Non
     mean.SetProjection(srs.ExportToWkt())
 
     band = mean.GetRasterBand(1)
+
     band.WriteArray(array)
+    gdal.SieveFilter(band, None, band, threshold=16)
     if polygonite:
         print('polygonize:....')
         outShapefile = data_path_name_str + "polygonized"
@@ -82,7 +84,7 @@ def WriteArrayToDisk(array, data_path_name_str, gt, polygonite=False, fieldo=Non
         outLayer.CreateField(field_2)
         band.SetNoDataValue(0)
         band = mean.GetRasterBand(1)
-
+        #band = mean
         gdal.Polygonize(band, None, outLayer, 0, [], callback=None)
 
         for i in range(outLayer.GetFeatureCount()):
@@ -174,3 +176,41 @@ def Open_raster_add_meta(inputFile):
     ds.SetMetadataItem('dates', '{'+ str(', '.join(dateStrs)) + '}', 'TIMESERIES')
     ds.SetMetadataItem('wavelength', '{'+ str(', '.join(decDates)) + '}', 'TIMESERIES')
     ds = None
+
+
+
+def Open_raster_add_meta_new_data(inputFile, list_of_dates):
+    #ds = openRasterDataset(inputFile)
+
+    dateStrs = []
+    decDates = []
+
+    for date in list_of_dates:
+        dec_date = toYearFraction(date)
+        print(dec_date)
+        decDates.append(str(np.round(dec_date, 3)))
+        dateStrs.append(date.strftime('%Y-%m-%d'))
+
+    ds = gdal.Open(inputFile)
+    ds.SetMetadataItem('names', '{EVI}', 'TIMESERIES')
+    ds.SetMetadataItem('dates', '{'+ str(', '.join(dateStrs)) + '}', 'TIMESERIES')
+    ds.SetMetadataItem('wavelength', '{'+ str(', '.join(decDates)) + '}', 'TIMESERIES')
+    ds = None
+
+
+def toYearFraction(date):
+    from datetime import datetime as dt
+    import time
+    def sinceEpoch(date): # returns seconds since epoch
+        return time.mktime(date.timetuple())
+    s = sinceEpoch
+
+    year = date.year
+    startOfThisYear = dt(year=year, month=1, day=1)
+    startOfNextYear = dt(year=year+1, month=1, day=1)
+
+    yearElapsed = s(date) - s(startOfThisYear)
+    yearDuration = s(startOfNextYear) - s(startOfThisYear)
+    fraction = yearElapsed/yearDuration
+
+    return date.year + fraction

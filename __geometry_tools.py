@@ -9,6 +9,7 @@ from Wes_Tools.__Segmentor import *
 from Wes_Tools.__CNN_segment import *
 from Wes_Tools.__Join_results import *
 from Wes_Tools.__geometry_tools import *
+from Wes_Tools.__utils import *
 
 
 def fishnet(geometry, threshold):
@@ -60,9 +61,20 @@ def getRasterExtent(raster_path):
     return box(x_min, y_min, x_max, y_max)
 
 
+def Tif_finder(input_path, custom_search_string=".*[t][i][f]{1,2}$"):
+    data_path_input = input_path
+    file_path_raster = []
+    for root, dirs, files in os.walk(data_path_input, topdown=True):
+        for file in files:
+            if re.match(custom_search_string, file):
+                file_path_raster.append(str(root + '/' + file))
+            else:
+                continue
+    return file_path_raster
+
+
 def find_matching_raster(vector_path, raster_path, search_string):
     raster_paths = Tif_finder(raster_path, search_string)
-    print(raster_paths)
     i = 0
     candidates = []
     candidates_intersect = []
@@ -72,7 +84,7 @@ def find_matching_raster(vector_path, raster_path, search_string):
         shape = file.GetLayer(0)
         feature = shape.GetFeature(0)
         geom = loads(feature.GetGeometryRef().ExportToWkb())
-
+        #geom = vector_path
         if geom.overlaps(extent_):
             candidates.append(rst)
             candidates_intersect.append(geom.buffer(0.0001).intersection(extent_).area)
@@ -88,4 +100,5 @@ def find_matching_raster(vector_path, raster_path, search_string):
     if len(candidates) != 0:
         return candidates[np.argmax(candidates_intersect)]
     else:
+        return None
         print('no matching raster found')

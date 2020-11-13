@@ -62,28 +62,34 @@ if __name__ == '__main__':
             df2.to_file(vector)
         except:
             continue
-    """
+  """
     ####
     # drop duplicate geometries
 
-    vector_paths = Shape_finder('X:/SattGruen/Analyse/Mowing_detection/Data/Raster/AN3_BN1/')
+    vector_paths = Shape_finder('X:/SattGruen/Analyse/Mowing_detection/Data/Raster/AN3_BN1/X0066_Y0042/')
     print(vector_paths)
     for vector in vector_paths:
         print(vector)
         if vector:
             df2 = gpd.GeoDataFrame(pd.concat([gpd.read_file(vector)], ignore_index=True),
                                    crs="EPSG:3035").drop_duplicates(subset='geometry')
-            indexNames = df2[df2['Cluster_nb'] == 0].index
-            df2.drop(indexNames, inplace=True)
+            try:
+
+                indexNames = df2[df2['Cluster_nb'] == 0].index
+                df2.drop(indexNames, inplace=True)
+            except:
+                None
+
             df2 = df2.explode().reset_index(drop=True)
             df2.to_file(vector)
         #except:
         #    continue
 
-    """
+"""
     ##### i
     adapt_to_raods = True
-
+    vector_paths = Shape_finder('X:/SattGruen/Analyse/Mowing_detection/Data/Raster/AN3_BN1/X0066_Y0042/')
+    print([vector_paths[0]])
     gdf_roads = gpd.GeoDataFrame(
         pd.concat([gpd.read_file(r'X:\Data\Vector\OSM\4mw\Roads_small/germany-highway-buffer-epsg3035.shp')],
                   ignore_index=True),
@@ -92,10 +98,11 @@ if __name__ == '__main__':
     #gdf_roads.to_file(r'X:\temp\temp_Max\Qgis/lines_unarunion.gpkg')
     if adapt_to_raods:
         import glob
-        dp_data = 'X:/SattGruen/Analyse/Mowing_detection/Data/Raster/AN3_BN1/'
+        dp_data = 'X:/SattGruen/Analyse/Mowing_detection/Data/Raster/AN3_BN1/X0066_Y0042/'
         vector_paths = glob.glob(dp_data + '*.shp', recursive=True)
         vector_paths = Shape_finder(dp_data)
-        vector_paths = vector_paths[11:]
+        print(vector_paths)
+        vector_paths = [vector_paths[0]]
         print(len(vector_paths))
         another_counter = 0
 
@@ -104,7 +111,6 @@ if __name__ == '__main__':
             print(vector_path, force_tile)
             gdf_ = gpd.GeoDataFrame(pd.concat([gpd.read_file(vector_path)], ignore_index=True),
                                     crs="EPSG:3035")
-            gdf_ = gpd.overlay(gdf_, gdf_roads, how='difference')
-            gdf_.to_file(vector_path)
-
+            gdf_ = gpd.overlay(gdf_, gdf_roads, how='difference').buffer(0.001)
+            gdf_.to_file(vector_path+'new.shp')
 """

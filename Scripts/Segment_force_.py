@@ -18,12 +18,13 @@ def main():
     prefix_network_drive = r'\\141.20.140.91/SAN/_ProjectsII/Grassland/'
     data_path = prefix_network_drive + 'temp/temp_Max/Data/'
 
-    dp_data = prefix_network_drive + 'SattGruen/Analyse/Mowing_detection/Data/Raster/AN3_BN1/'
-    vector_paths = Shape_finder(dp_data, ".*[m][a][s][k].*[s][h][p]{1,2}$")
-    vector_paths = vector_paths[8:]
+    dp_data = prefix_network_drive + 'SattGruen/Analyse/Mowing_detection/Data/Raster/AN3_BN1/X0066_Y0042/'
+    vector_paths = Shape_finder(dp_data, ".*[m[a][s][k].*[s][h][p]{1,2}$")
+    vector_paths = [vector_paths[0]]
     print(vector_paths)
     another_counter = 0
     for vector_path in vector_paths:
+
         force_tile = vector_path.split('/')[-2]
 
         print(vector_path, force_tile)
