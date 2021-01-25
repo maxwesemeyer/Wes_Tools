@@ -81,11 +81,11 @@ def main():
             PCA_ = [False]
             filter_list = ['bilateral', 'no_filter']
             stencil_list = ["8p"]#, "8p"]
-            segmentation_rounds_list = [[0.5, 0.01, 0.00915]]#, [0.5, 0.01, 0.05], [0.5, 0.01, 0.015]]
+            segmentation_rounds_list = [[0.5, 0.01, 0.00915], [0.5, 0.01]]#, [0.5, 0.01, 0.015]]
 
             gdf_old = gdf
-            n_classes_list = [4, 5, 6, 7]
-            input_bands_list = [10, 100]
+            n_classes_list = [3, 4, 5, 8, 9]
+            input_bands_list = [100]
             for n_band in input_bands_list:
                 for n_class in n_classes_list:
                     for filter in filter_list:
@@ -114,9 +114,9 @@ def main():
                                                                              'X:/SattGruen/Analyse/Mowing_detection/Data/Raster/S-1/',
                                                                              ".*[c][k][e][d].*[t][i][f]{1,2}$")
                                         print(data_patg_alt)
-                                        clf = segmentation_BaySeg(n_band=11, custom_subsetter=range(10, 21), _filter=filter,
+                                        clf = segmentation_BaySeg(n_band=100, custom_subsetter=range(10, 21), _filter=filter,
                                                                MMU=round, into_pca=11, beta_coef=40, beta_jump=1,
-                                                               PCA=False, n_class=4, iterations=20, neighbourhood=stncl)
+                                                               PCA=False, n_class=n_class, iterations=20, neighbourhood=stncl)
                                         Parallel(n_jobs=5)(
                                             delayed(clf.segment_2)(data_patg_alt, vector_geom=row, data_path_output=data_path,
                                                                indexo=index) for index, row in gdf.iterrows())
@@ -124,12 +124,12 @@ def main():
 
                                         different_raster = find_matching_raster(vector_path,
                                                                                 'X:/SattGruen/Analyse/Mowing_detection/Data/Raster/AN0_BN0/',
-                                                                                ".*[E][V][I].*[S][S].*[t][i][f]{1,2}$")
+                                                                                ".*[E][V][I].*[B][M].*[t][i][f]{1,2}$")
                                         #different_raster = r'H:\Grassland\EVI\X0068_Y0042/2017-2019_001-365_HL_TSA_LNDLG_EVI_TSS.tif'
                                         #different_raster = r'X:\temp\temp_Max/TS_X0068_Y0042.tif'
                                         clf = segmentation_BaySeg(n_band=100, custom_subsetter=range(2, 11), _filter=filter,
                                                               MMU=round, into_pca=40, beta_coef=50, beta_jump=1.5,
-                                                              PCA=False, n_class=3, iterations=20)
+                                                              PCA=False, n_class=n_class, iterations=20)
                                         Parallel(n_jobs=5)(
                                             delayed(clf.segment_2)(different_raster, vector_geom=row, data_path_output=data_path,
                                                                indexo=index) for index, row in gdf.iterrows())
@@ -141,9 +141,9 @@ def main():
                                                                                 ".*[E][V][I].*[S][S].*[t][i][f]{1,2}$")
                                         #different_raster = r'H:\Grassland\EVI\X0068_Y0042/2017-2019_001-365_HL_TSA_LNDLG_EVI_TSS.tif'
                                         #different_raster = r'X:\temp\temp_Max/TS_X0068_Y0042.tif'
-                                        clf = segmentation_BaySeg(n_band=n_band, custom_subsetter=range(10, 61), _filter=filter,
+                                        clf = segmentation_BaySeg(n_band=100, custom_subsetter=range(2, 100), _filter=filter,
                                                               MMU=round, into_pca=40, beta_coef=50, beta_jump=1.5,
-                                                              PCA=False, n_class=8, iterations=30)
+                                                              PCA=False, n_class=n_class+2, iterations=30)
                                         Parallel(n_jobs=5)(
                                             delayed(clf.segment_2)(different_raster, vector_geom=row, data_path_output=data_path,
                                                                indexo=index) for index, row in gdf.iterrows())

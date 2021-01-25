@@ -9,6 +9,7 @@ import torch.nn.init
 import imageio
 from sklearn.mixture import GaussianMixture
 from .__utils import *
+from .__Segmentor import *
 import cv2
 ########################################################################################################################
 
@@ -91,7 +92,7 @@ class Segmentation():
                                                                         n_band, MMU=MMU, PCA=True)
 
 
-def segment_cnn(string_to_raster, string_to_raster_reference, vector_geom, indexo=np.random.randint(0, 100000),
+def segment_cnn(string_to_raster, vector_geom, indexo=np.random.randint(0, 100000),
               data_path_output=None, n_band=50, into_pca=50, lr_var=0.1, convs=2,
               custom_subsetter=range(0,80),  MMU=0.05, PCA=True):
     torch.set_num_threads(10)
@@ -138,8 +139,7 @@ def segment_cnn(string_to_raster, string_to_raster_reference, vector_geom, index
 
         with fiona.open(vector_geom, "r") as shapefile:
             shp = [feature["geometry"] for feature in shapefile]
-        with rasterio.open(string_to_raster_reference) as src:
-            labels, out_transform = rasterio.mask.mask(src, shp, crop=True, nodata=0)
+
 
         #labels = labels*mask_local
         #labels = segmentation.felzenszwalb(three_d_image, scale=3)  #

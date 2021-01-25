@@ -77,37 +77,61 @@ def coherence_stack(in_path, out_path):
     for raster in Tifs:
         file_name = raster.split('/')[-1]
         file_name_substr = file_name.split('_')
-        asc_dec_list.append(file_name_substr[-2])
+        asc_dec_list.append(file_name_substr[-1].split('.')[0])
         force_tiles.append(file_name_substr[0] + '_' + file_name_substr[1])
+
     # iterate through force tiles and Asc/Dec and create a list of all rasters that should be written in one stack
     # also create a list of the respective dates for the MetaData
-    for force_tile in ['X0066_Y0042']:#np.unique(force_tiles):
-        print(force_tile)
+    for force_tile in np.unique(force_tiles):
         subs_force = [k for k in Tifs if force_tile in k]
         for asc_dec in np.unique(asc_dec_list):
-            subs_force_asc = [k for k in subs_force if asc_dec in k]
-            date_list = []
-            for path_strings in subs_force_asc:
-                file_name = path_strings.split('/')[-1]
-                file_name_substr = file_name.split('_')
-                dateo = datetime.datetime.strptime(str(file_name_substr[2]), '%Y%m%d')
-                # append every date twice because we have two bands per image... the easy way
-                date_list.append(dateo)
-                date_list.append(dateo)
-                # print(dateo.strftime('%Y-%m-%d'))
-            out_string = out_path + force_tile + '/coherence_stack_2018_' + asc_dec + '.tif'
-            create_stack(subs_force_asc, out_string, n_bands=2, custom_subsetter=range(1,3))
-            Open_raster_add_meta_new_data(out_string, date_list)
-            print(date_list, np.argsort(date_list))
-            print(subs_force_asc, 'Right subset')
+            try:
+                subs_force_asc = [k for k in subs_force if asc_dec in k]
+                date_list = []
+                for path_strings in subs_force_asc:
+                    print(path_strings)
+                    file_name = path_strings.split('/')[-1]
+                    file_name_substr = file_name.split('_')
+                    dateo = datetime.datetime.strptime(str(file_name_substr[2]), '%Y%m%d')
+                    print(dateo)
+                    # append every date twice because we have two bands per image... the easy way
+                    date_list.append(dateo)
+                    #date_list.append(dateo)
+                    # print(dateo.strftime('%Y-%m-%d'))
+                out_string = out_path + force_tile + '/coherence_stack_2018_vv' + asc_dec + '.tif'
+                create_stack(subs_force_asc, out_string, n_bands=1, custom_subsetter=range(2,3))
+                Open_raster_add_meta_new_data(out_string, date_list)
+                print(date_list, np.argsort(date_list))
+                print(subs_force_asc, 'Right subset')
+            except:
+                continue
+
+
+def rainstack(path_to_RADOLAN, out_path):
+
+    Radolan_list = Tif_finder(path_to_RADOLAN, custom_search_string=".*[i][l][y].*[e][n][v][i]{1,2}$")
+    date_list = []
+    for file in Radolan_list:
+        date = file.split('_')[1].split('//')[-1]
+
+        date = datetime.datetime.strptime(str(date), '%Y%m%d')
+        date_list.append(date)
+    #create_stack(Radolan_list, out_path, n_bands=1, custom_subsetter=range(1,2))
+
+    for tile in Tif_finder( r'X:\SattGruen\Analyse\Mowing_detection\Data\Raster\RADOLAN\Tiles/'):
+
+        Open_raster_add_meta_new_data(tile, date_list)
+
 
 
 
 
 if __name__ == '__main__':
-    in_ = r'\\141.20.140.91/SAN/_ProjectsII/Grassland/SattGruen/Analyse/Mowing_detection/Data/Raster/coherence_extract'
-    out = r'\\141.20.140.91\SAN\_ProjectsII\Grassland\SattGruen\Analyse\Mowing_detection\Data/Raster/AN3_BN1/'
-    coherence_stack(in_, out)
+    #in_ = r'\\141.20.140.91/SAN/_ProjectsII/Grassland/SattGruen/Analyse/Mowing_detection/Data/Raster/coherenceFORCETiles'
+    #out = r'\\141.20.140.91\SAN\_ProjectsII\Grassland\SattGruen\Analyse\Mowing_detection\Data/Raster/AN0_BN0/'
+    #coherence_stack(in_, out)
+    out = r'X:\SattGruen\Analyse\Mowing_detection\Data\Raster\RADOLAN/Radolan_stacked.tif'
+    rainstack(r'X:\SattGruen\Analyse\Mowing_detection\Data\Raster\RADOLAN/Daily/', out)
     """
     
     folders_BRB = [x[0] for x in os.walk(r'X:\SattGruen\Analyse\Mowing_detection\Data\Raster\AN3_BN1\S-1/')]

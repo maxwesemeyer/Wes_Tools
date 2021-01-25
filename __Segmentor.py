@@ -4,8 +4,161 @@ from skimage import exposure
 from scipy.ndimage.filters import generic_filter
 from scipy import ndimage
 from scipy.stats import mode
-from .__utils import *
+
 import bayseg
+import matplotlib.pyplot as plt
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+from torch.autograd import Variable
+from skimage import segmentation
+import torch.nn.init
+import imageio
+import cv2
+from .__utils import *
+
+
+class MyNet(nn.Module):
+    def __init__(self, input_dim):
+        super(MyNet, self).__init__()
+        self.conv1 = nn.Conv2d(input_dim, n_band, kernel_size=n_band, stride=stride_, padding=padd)
+
+        self.bn1 = nn.BatchNorm2d(n_band)
+        self.conv2 = nn.ModuleList()
+        self.bn2 = nn.ModuleList()
+        for i in range(nConv - 1):  # n_conv
+            self.conv2.append(nn.Conv2d(n_band, n_band, kernel_size=n_band, stride=stride_, padding=padd))
+            self.bn2.append(nn.BatchNorm2d(n_band))
+        self.conv3 = nn.Conv2d(n_band, n_band, kernel_size=1, stride=stride_, padding=0)
+        self.bn3 = nn.BatchNorm2d(n_band)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = F.relu(x)
+        x = self.bn1(x)
+        """
+        #### experimenting
+        x_ = x.detach().numpy()
+        x_ = x_.squeeze()
+        x_ = np.moveaxis(x_, 0, 2)
+        plt.imshow(x_)
+        plt.show()
+        #### experimenting
+        """
+        for i in range(nConv - 1):
+            x = self.conv2[i](x)
+            x = F.relu(x)
+            x = self.bn2[i](x)
+        x = self.conv3(x)
+        x = self.bn3(x)
+        return x
+
+def set_global_Cnn_variables(bands=11, convs=2):
+    """
+    CNN needs some global variables
+    :param bands: number of bands to be used for CNN
+    :param convs: number of convolutions
+    :return:
+    """
+    # CNN model
+    global n_band
+    global nConv
+    global padd
+    global stride_
+    n_band = bands
+    nConv = convs
+    padd = np.int((n_band - 1) / 2)
+    stride_ = 1
+
+
+def WriteArrayToDisk(array, data_path_name_str, gt, polygonite=False, fieldo=None, EPSG=3035):
+    #################################
+    # write raster file
+    # 0 to nan
+    # should be 2d
+    # img_nan[img_nan == 0] = 255
+
+    srs = osr.SpatialReference()
+    srs.ImportFromEPSG(EPSG)
+
+    string_tif = data_path_name_str + ".tif"
+    # prj =  PROJCS["ETRS89-extended / LAEA Europe",GEOGCS["ETRS89",DATUM["European_Terrestrial_Reference_System_1989",SPHEROID["GRS 1980",6378137,298.257222101,AUTHORITY["EPSG","7019"]],TOWGS84[0,0,0,0,0,0,0],AUTHORITY["EPSG","6258"]],PRIMEM["Greenwich",0,AUTHORITY["EPSG","8901"]],UNIT["degree",0.0174532925199433,AUTHORITY["EPSG","9122"]],AUTHORITY["EPSG","4258"]],PROJECTION["Lambert_Azimuthal_Equal_Area"],PARAMETER["latitude_of_center",52],PARAMETER["longitude_of_center",10],PARAMETER["false_easting",4321000],PARAMETER["false_northing",3210000],UNIT["metre",1,AUTHORITY["EPSG","9001"]],AXIS["Northing",NORTH],AXIS["Easting",EAST],AUTHORITY["EPSG","3035"]]"
+    gdal.AllRegister()
+
+    rows = array.shape[0]
+    cols = array.shape[1]
+    driver = gdal.GetDriverByName('GTiff')
+    mean = driver.Create(string_tif, cols, rows, 1, gdal.GDT_Int16)
+    mean.SetGeoTransform(gt)
+    mean.SetProjection(srs.ExportToWkt())
+
+    band = mean.GetRasterBand(1)
+
+    band.WriteArray(array)
+    gdal.SieveFilter(band, None, band, threshold=16)
+    if polygonite:
+        print('polygonize:....')
+        outShapefile = data_path_name_str + "polygonized"
+        driver = ogr.GetDriverByName("ESRI Shapefile")
+
+        if os.path.exists(outShapefile + ".shp"):
+            driver.DeleteDataSource(outShapefile + ".shp")
+        outDatasource = driver.CreateDataSource(outShapefile + ".shp")
+        outLayer = outDatasource.CreateLayer(outShapefile, srs=None)
+        newField = ogr.FieldDefn('Cluster_nb', ogr.OFTInteger)
+        field_2 = ogr.FieldDefn('field_nb', ogr.OFTInteger)
+        outLayer.CreateField(newField)
+        outLayer.CreateField(field_2)
+        band.SetNoDataValue(0)
+        band = mean.GetRasterBand(1)
+        #band = mean
+        gdal.Polygonize(band, None, outLayer, 0, [], callback=None)
+
+        for i in range(outLayer.GetFeatureCount()):
+            # print(i)
+            feature = outLayer.GetFeature(i)
+            feature.SetField('field_nb', fieldo)
+            outLayer.CreateFeature(feature)
+            feature = None
+        outLayer = None
+        outDatasource = None
+    band = None
+    mean = None
+    sourceRaster = None
+
+
+
+def create_mask_from_ndim(array):
+    """
+
+    :param array: should be of shape bands, x, x
+    :return:
+    """
+    out_image_mask = array
+    mask = np.any(out_image_mask != 0, axis=0)
+    return mask
+
+
+def select_bands_sd(array_of_shape, max_valid_pixels_=500, max_bands=500):
+    """
+    :param array_of_shape: bands, y, x
+    :param max_valid_pixels_:
+    :param max_bands:
+    :return:
+    """
+    shape_ = array_of_shape.shape
+    arg_50 = (-np.nanstd(array_of_shape, axis=(1, 2))).argsort()[:max_bands]
+    collected_bands = []
+    for args in arg_50:
+        valid_pixel = (sum(np.reshape(array_of_shape[args, :, :], (shape_[1] * shape_[2])) > 0))
+        if valid_pixel < max_valid_pixels_:
+            print('only:', valid_pixel, 'of:', max_valid_pixels_)
+        elif len(collected_bands) == max_bands:
+            break
+        else:
+            collected_bands.append(int(args))
+    return collected_bands
 
 
 class segmentation_BaySeg:
@@ -60,10 +213,11 @@ class segmentation_BaySeg:
             shp = [feature["geometry"] for feature in shapefile]
         """
         subsetter_tsi = self.subsetter
-        try:
+        if subsetter_tsi:
             with rasterio.open(raster_l) as src:
                 out_image, out_transform = rasterio.mask.mask(src, shp, crop=True, nodata=0)
                 mask = create_mask_from_ndim(out_image)
+                print(out_image, mask)
                 out_image[out_image < 0] = abs(out_image[out_image < 0])
                 out_image = out_image * mask
                 gt_gdal = Affine.to_gdal(out_transform)
@@ -168,7 +322,7 @@ class segmentation_BaySeg:
                         print('no pca, used: ', self.n_band, ' bands')
                         return im[:, :, :self.n_band], scaled_arg_2d[:, :self.n_band], mask_local, gt_gdal, MMU_fail
 
-        except:
+        else:
             print('Maybe input shapes did not overlap; Also check subsetter; Is N_band paramter a list?', self.n_band)
             return None, None, None, None, None
 
@@ -250,6 +404,160 @@ class segmentation_BaySeg:
             print('not returning anything')
         else:
             return file_str + 'polygonized.shp'
+
+    def segment_cnn(self, string_to_raster, vector_geom, indexo=np.random.randint(0, 100000),
+                    data_path_output=None, convs=3):
+        #, n_band=50, into_pca=50, lr_var=0.1, convs=2,
+        #            custom_subsetter=range(0, 80), MMU=0.05, PCA=True
+        torch.set_num_threads(15)
+        """
+        The CNN unsupervised segmentation is based on a paper by Asako Kanezaki;
+        "Unsupervised Image Segmentation by Backpropagation"
+        on Github: https://github.com/kanezaki/pytorch-unsupervised-segmentation
+        :param string_to_raster:
+        :param vector_geom:
+        :param indexo:
+        :param data_path_output:
+        :param n_band:
+        :param into_pca:
+        :param lr_var:
+        :param custom_subsetter:
+        :param MMU:
+        :param PCA:
+        :return:
+        """
+        set_global_Cnn_variables(bands=self.n_band, convs=convs)
+
+        data_path = data_path_output + 'output'
+        lr_var=0.1
+        field_counter = "{}{}{}{}{}{}{}".format(str(self.n_band), '_', str(self.n_band), '_', str(lr_var), '_', str(indexo))
+        ###########
+        # prepare data function does the magic here
+        three_d_image, two_d_im_pca, mask_local, gt_gdal, MMU_fail = self.prepare_data(string_to_raster, vector_geom)
+        print(three_d_image.shape)
+        # in case grassland area is too small
+        if MMU_fail:
+            three_d_image = np.zeros((three_d_image.shape[0], three_d_image.shape[1]))
+            return
+        elif three_d_image is None:
+            return
+
+        else:
+
+
+            # labels = labels*mask_local
+            #labels = segmentation.felzenszwalb(three_d_image, scale=90)  #
+            # labels = GaussianMixture(n_components=20).fit_predict(two_d_im_pca)
+            labels = segmentation.slic(three_d_image, n_segments=500, compactness=100)
+
+            im = three_d_image
+            file_str = "{}{}{}".format(data_path + "/output/out_labels", str(field_counter), "_")
+
+            labels_img = np.reshape(labels, (three_d_image.shape[0], three_d_image.shape[1]))
+            plt.imshow(labels_img)
+            plt.show()
+
+            # file_str = "{}{}".format(data_path + "/CNN_", str(field_counter))
+            # WriteArrayToDisk(labels_img, file_str, gt_gdal, polygonite=True, fieldo=field_counter)
+            # return
+            # labels__img = np.reshape(labels_, (scaled_shaped.shape[0], scaled_shaped.shape[1]))
+            labels_img += 1
+            labels_img[mask_local] = 0
+            labels = labels_img.reshape(im.shape[0] * im.shape[1])
+            print(im.shape, labels.shape)
+            plt.imshow(labels_img)
+            # plt.show()
+
+            # WriteArrayToDisk(labels_img, file_str, gt_gdal, polygonite=True)
+            ################################ cnn stuff
+            data = torch.from_numpy(np.array([im.transpose((2, 0, 1)).astype('float32') / 255.]))
+
+            visualize = True
+            data = Variable(data)
+            u_labels = np.unique(labels)
+
+            l_inds = []
+            for i in range(len(u_labels)):
+                l_inds.append(np.where(labels == u_labels[i])[0])
+
+            # train
+            model = MyNet(data.size(1))
+
+            # if os.path.exists(data_path + 'cnn_model'):
+            # model = torch.load(data_path + 'cnn_model')
+            model.train()
+            loss_fn = torch.nn.CrossEntropyLoss()
+            optimizer = optim.SGD(model.parameters(), lr=lr_var, momentum=0.1)
+            label_colours = np.random.randint(255, size=(100, self.n_band))
+            # to create a gif
+            images = []
+            for batch_idx in range(200):
+                # forwarding
+                optimizer.zero_grad()
+                output = model(data)[0]
+                output = output.permute(1, 2, 0).contiguous().view(-1, self.n_band)
+                ignore, target = torch.max(output, 1)
+                im_target = target.data.cpu().numpy()
+                nLabels = len(np.unique(im_target))
+
+                if visualize:
+                    im_target_rgb = np.array([label_colours[c % 100] for c in im_target])
+
+                    im_target_rgb = im_target_rgb.reshape(im.shape).astype(np.uint8)
+                    shp_1 = (np.sqrt(im_target_rgb.shape[0])).astype(np.int)
+
+                    # im_target_rgb = im_target_rgb.reshape((shp_1, shp_1, 10)).astype(np.uint8)
+
+                    images.append((im_target_rgb[:, :, 0]))
+
+                    cv2.imshow("output", im_target_rgb[:, :, [0, 1, 2]])
+                    cv2.waitKey(self.n_band)
+
+                # superpixel refinement
+                # TODO: use Torch Variable instead of numpy for faster calculation
+                for i in range(len(l_inds)):
+                    labels_per_sp = im_target[l_inds[i]]
+                    u_labels_per_sp = np.unique(labels_per_sp)
+                    hist = np.zeros(len(u_labels_per_sp))
+                    for j in range(len(hist)):
+                        hist[j] = len(np.where(labels_per_sp == u_labels_per_sp[j])[0])
+                    im_target[l_inds[i]] = u_labels_per_sp[np.argmax(hist)]
+                target = torch.from_numpy(im_target)
+
+                target = Variable(target)
+                loss = loss_fn(output, target)
+                loss.backward()
+                optimizer.step()
+
+                # print (batch_idx, '/', args.maxIter, ':', nLabels, loss.data[0])
+                print(batch_idx, '/', 200, ':', nLabels, loss.item())
+
+                if nLabels < 2:
+                    print("nLabels", nLabels, "reached minLabels", 2, ".")
+                    break
+            torch.save(model, data_path + 'cnn_model')
+            # save output image
+            if not visualize:
+                output = model(data)[0]
+                output = output.permute(1, 2, 0).contiguous().view(-1, self.n_band)
+                ignore, target = torch.max(output, 1)
+                im_target = target.data.cpu().numpy()
+                im_target_rgb = np.array([label_colours[c % 100] for c in im_target])
+                im_target_rgb = im_target_rgb.reshape(im.shape).astype(np.uint8)
+            imageio.mimsave(data_path + 'cnn.gif', images)
+            print(im_target_rgb.shape)
+
+            flat_array = im_target_rgb[:, :, 0].squeeze()
+            flat_array += 1
+            flat_array[mask_local] = 0
+            print(type(flat_array))
+
+            plt.figure(figsize=(15, 8))
+            plt.imshow(flat_array)
+            # plt.show()
+
+        file_str = "{}{}".format(data_path + "/CNN_", str(field_counter))
+        WriteArrayToDisk(flat_array, file_str + str(indexo), gt_gdal, polygonite=True, fieldo=field_counter)
 
 
 def filter_function(invalues):

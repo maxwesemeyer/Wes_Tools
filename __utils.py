@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 from .Plots_OBIA import *
 import cv2
 from skimage import exposure
-from hubdc.core import *
+#from hubdc.core import *
 
 
 def Shape_finder(input_path, pattern=".*[s][h][p]{1,2}$"):
@@ -214,3 +214,64 @@ def toYearFraction(date):
     fraction = yearElapsed/yearDuration
 
     return date.year + fraction
+
+
+def calc_raster_intersect(raster_1, raster_2, out_path=None):
+    # IN ORDER TO CLIP BY EXTENT EVERY IMAGE
+    """
+    clips raster_2 to the extent of raster_1
+    :param raster_1:
+    :param raster_2:
+    :param out_path:
+    :return:
+    """
+    IMG1 = gdal.Open(raster_1)
+    IMG2 = gdal.Open(raster_2)
+    gt1 = IMG1.GetGeoTransform()
+    gt2 = IMG2.GetGeoTransform()
+    if gt1[0] < gt2[0]:  # CONDITIONAL TO SELECT THE CORRECT ORIGIN
+        gt3 = gt2[0]
+    else:
+        gt3 = gt1[0]
+    if gt1[3] < gt2[3]:
+        gt4 = gt1[3]
+    else:
+        gt4 = gt2[3]
+    xOrigin = gt3
+    yOrigin = gt4
+    pixelWidth = gt1[1]
+    pixelHeight = gt1[5]
+
+    r1 = [gt1[0], gt1[3], gt1[0] + (gt1[1] * IMG1.RasterXSize), gt1[3] + (gt1[5] * IMG1.RasterYSize)]
+    r2 = [gt2[0], gt2[3], gt2[0] + (gt2[1] * IMG2.RasterXSize), gt2[3] + (gt2[5] * IMG2.RasterYSize)]
+    intersection = [max(r1[0], r2[0]), min(r1[1], r2[1]), min(r1[2], r2[2]), max(r1[3], r2[3])]
+
+    xmin = intersection[0]
+    xmax = intersection[2]
+    ymin = intersection[3]
+    ymax = intersection[1]
+
+    # Specify offset and rows and columns to read
+    xoff = int((xOrigin-gt2[0]) / pixelWidth)
+    yoff = int((gt2[3]-yOrigin) / pixelWidth)
+    xcount = int((xmax - xmin) / pixelWidth)
+    ycount = int((ymax - ymin) / pixelWidth)
+    srs = IMG1.GetProjectionRef()  # necessary to export with SRS
+
+    #img1 = IMG1.ReadAsArray()
+    img2 = IMG2.ReadAsArray()#(xoff=xoff, yoff=yoff, xsize=xcount, ysize=ycount)
+    print(img2.shape, 'Old')
+    to_y = (yoff + ycount)
+    to_x = (xoff + xcount)
+    img2 = img2[:, yoff:to_y, xoff:to_x]
+    print(img2.shape, 'NEW shape')
+    target_ds = gdal.GetDriverByName('MEM').Create('', xcount, ycount, img2.shape[0], gdal.GDT_Int16)
+    target_ds.SetGeoTransform((xmin, pixelWidth, 0, ymax, 0, pixelHeight,))
+    target_ds.SetProjection(srs)
+
+    for b in range(img2.shape[0]):
+        target_ds.GetRasterBand(b + 1).WriteArray(img2[b, :, :])
+        target_ds.GetRasterBand(b + 1).SetNoDataValue(-999)
+    driver = gdal.GetDriverByName("GTiff")
+    copy_ds = driver.CreateCopy(out_path, target_ds, 0)
+    copy_ds = None

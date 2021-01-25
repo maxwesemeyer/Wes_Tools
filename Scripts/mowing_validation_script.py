@@ -23,11 +23,12 @@ def compare_dates(reference_dates, predicted_dates, year):
                 continue
             diff_temp_list = list()
             for single_date_pred in predicted_dates:
-                try:
-                    pred = datetime.datetime.strptime(str(single_date_pred), '%Y-%m-%d')
-                except:
-                    pred = datetime.datetime.strptime(str(single_date_pred), '%Y-%m-%d %H:%M:%S')
-                diff = single_date_ref - pred
+                #try:
+                #    pred = datetime.datetime.strptime(str(single_date_pred), '%Y-%m-%d')
+                #except:
+                #    pred = datetime.datetime.strptime(str(single_date_pred), '%Y-%m-%d %H:%M:%S')
+                pred = single_date_pred
+                diff = single_date_ref.date() - pred
 
                 diff_temp_list.append(abs(diff.days))
             out_diff.append(min(diff_temp_list))
@@ -37,7 +38,52 @@ def compare_dates(reference_dates, predicted_dates, year):
         return []
 
 
-def val_func(vector_geom, raster_path_sum, raster_path_date, index, year):
+def compare_dates_new(reference_dates, predicted_dates, year):
+    """
+    returns the difference in days betweeen the predicted mowing event and the reference mowing event for each predicted;
+    The difference with the smallest value is chosen
+    :param reference_dates:
+    :param predicted_dates:
+    :return:
+    """
+
+    out_diff = list()
+    if len(predicted_dates) >= 1:
+        for single_date_pred in predicted_dates:
+            pred = single_date_pred
+            diff_temp_list = list()
+            for single_date_ref in reference_dates:
+                if single_date_ref == datetime.datetime.strptime('01.01.18', '%d.%m.%y'):
+                    continue
+                #try:
+                #    pred = datetime.datetime.strptime(str(single_date_pred), '%Y-%m-%d')
+                #except:
+                #    pred = datetime.datetime.strptime(str(single_date_pred), '%Y-%m-%d %H:%M:%S')
+
+                diff = single_date_ref.date() - pred
+
+                diff_temp_list.append(abs(diff.days))
+            out_diff.append(min(diff_temp_list))
+        return out_diff
+    else:
+        print(predicted_dates)
+        return []
+
+
+def flatten(lis):
+    for item in lis:
+        if isinstance(item, Iterable) and not isinstance(item, str):
+            for x in flatten(item):
+                yield x
+        else:
+            yield item
+
+
+def to_date(doy, yr):
+    return date.fromordinal(date(yr, 1, 1).toordinal() + np.int(doy) - 1)
+
+
+def val_func(vector_geom, raster_path_sum, index, year):
     shp = [vector_geom.geometry]
     """
     with fiona.open(vector_geom, "r") as shapefile:
@@ -48,13 +94,19 @@ def val_func(vector_geom, raster_path_sum, raster_path_date, index, year):
     begin_2019 = datetime.datetime.strptime(str('2019-01-01'), '%Y-%m-%d')
     begin_2020 = datetime.datetime.strptime(str('2020-01-01'), '%Y-%m-%d')
     mows_list = []
-    for ft in vector_geom:
-        if ft:
+
+    names_list = ["Schnitt_1", "Schnitt_2","Schnitt_3","Schnitt_4","Schnitt_5"]
+
+    for ft, names in zip(vector_geom, vector_geom.index.values):
+
+        if names_list.__contains__(names):
             try:
-                ref_mow1 = datetime.datetime.strptime(str(ft), '%Y-%m-%d')
+
+                ref_mow1 = datetime.datetime.strptime(str(ft), '%d.%m.%Y')
                 mows_list.append(ref_mow1)
             except:
                 continue
+
     mows_list = np.array(mows_list)
     if year == 2017:
         condition = np.where((begin_2017 < mows_list) & (mows_list < begin_2018))
@@ -65,36 +117,60 @@ def val_func(vector_geom, raster_path_sum, raster_path_date, index, year):
     mow_dates = mows_list[condition]
     n_mows = len(mows_list[condition])
     with rasterio.open(raster_path_sum) as src:
-        predicted, out_transform = rasterio.mask.mask(src, shp, crop=True, nodata=0)
+        predicted, out_transform = rasterio.mask.mask(src, shp, crop=True, nodata=-9999)
+        predicted_sum = predicted[0, :, :]
+        predicted_doy = predicted[4:11, :, :]
+
+        predicted_doy = np.reshape(predicted_doy, newshape=(7, predicted_doy.shape[1]*predicted_doy.shape[2]))
+
+        ravelled = predicted.ravel()[np.where(predicted_sum.ravel() != -9999)]
+        diff = np.array(list(map(lambda x: x - n_mows, ravelled))).mean()
+
         # wenn zu viele Predicted = positiv
         # wenn zu wenig predicted = negativ
 
-        diff = np.int(predicted-n_mows)
-        print(predicted, mows_list[condition], n_mows, diff, index)
-    with rasterio.open(raster_path_date) as src:
-        out_image, out_transform = rasterio.mask.mask(src, shp, crop=True, nodata=0)
-        # doy to date list
-        out_list = list(out_image)
+        #diff = np.int(predicted-n_mows)
+        #print(predicted, mows_list[condition], n_mows, diff, index)
+        days_diff_list = []
         predicted_list_date = []
-        for item in out_list:
-            if np.int(item) == 0:
-                continue
-            d1 = date.fromordinal(date(year, 1, 1).toordinal() + np.int(item) - 1)
-            predicted_list_date.append(d1)
 
-        days_diff = compare_dates(mow_dates, predicted_list_date, year)
-    return diff, days_diff, predicted_list_date, index
+        for i in range(predicted_doy.shape[1]):
+            ravelled = predicted_doy[:, i]
+            if np.any(ravelled != -9999):
+
+                ##############
+                ## exlude doy 0, which is the case when no mowing is found
+                ravelled = ravelled[np.where(ravelled != 0, True, False)]
+                date_list = [to_date(x, year) for x in ravelled]
+                if len(date_list) == 0:
+                    continue
+
+                days_diff_list.append(np.array(compare_dates_new(mow_dates, date_list, year)))
+        print(list(flatten(days_diff_list)))
+        for band in range(n_mows):
+
+            ravelled = predicted_doy[band, :].ravel()[np.where(predicted_doy[band, :].ravel() != -9999)]
+            ##############
+            ## exlude doy 0, which is the case when no mowing is found
+            ravelled = ravelled[np.where(ravelled != 0, True, False)]
+            predicted_list_date.append(np.median(ravelled))
+            #days_diff_list.append(np.array([compare_dates(ref, pred, year) for ref, pred in zip([mow_dates[band]]*len(ravelled), date_list)]).mean())
+
+    return diff, np.nanmean(days_diff_list), predicted_list_date, index
 
 
 if __name__ == '__main__':
-    reference_vector = r'\\141.20.140.91\SAN\_ProjectsII\Grassland\temp\temp_Marcel\FL_mowing_reference\mowingEvents_3035.gpkg'
-    reference_vector = r'\\141.20.140.91\SAN\_ProjectsII\Grassland\temp\temp_Marcel\FL_mowing_reference/mowingEvents_3035_out/mowingEvents_3035_out.shp'
-    predicted_raster_sum = r'\\141.20.140.91\NAS_Rodinia\Croptype\Mowing_2018\vrt\MowingEvents_SUM_2018.tif'
-    predicted_raster_date = r'\\141.20.140.91\NAS_Rodinia\Croptype\Mowing_2018\vrt\vrt_DOY.vrt'
-    gdf = gpd.GeoDataFrame(pd.concat([gpd.read_file(reference_vector)], ignore_index=True))
+    import glob
+    #reference_vector = r'\\141.20.140.91\SAN\_ProjectsII\Grassland\temp\temp_Marcel\FL_mowing_reference\mowingEvents_3035.gpkg'
+    #reference_vector = r'\\141.20.140.91\SAN\_ProjectsII\Grassland\temp\temp_Marcel\FL_mowing_reference/mowingEvents_3035_out/mowingEvents_3035_out.shp'
+    reference_vector = glob.glob(r'X:\temp\temp_Max\Data\Vector\Referenz_Mowing/**shp')
+    print(reference_vector)
+    predicted_raster = r'H:\Mowing_DC2021\Mosaic\2018/mowingEvents_DC2021_2018.tif'
+    #predicted_raster_date = r'\\141.20.140.91\NAS_Rodinia\Croptype\Mowing_2018\vrt\vrt_DOY.vrt'
+    gdf = gdf = gpd.GeoDataFrame(pd.concat([gpd.read_file(i) for i in reference_vector], ignore_index=True))
 
-    x = Parallel(n_jobs=10)(
-        delayed(val_func)(row, predicted_raster_sum, predicted_raster_date, index, year=2018) for index, row in gdf.iterrows())
+    x = Parallel(n_jobs=1)(
+        delayed(val_func)(row, predicted_raster, index, year=2018) for index, row in gdf.iterrows())
     diff_n_mows, diff_days, predicted_dates, index = list(zip(*x))
     d1_list = []
     d2_list = []
@@ -103,7 +179,7 @@ if __name__ == '__main__':
     d5_list = []
 
     for item in x:
-        print(item)
+
         for ix in range(5):
             dates = item[2]
             if ix == 0:
@@ -143,13 +219,13 @@ if __name__ == '__main__':
     gdf['cut3_pr_18'] = pd.Series(d3_list)
     gdf['cut4_pr_18'] = pd.Series(d4_list)
     gdf['cut5_pr_18'] = pd.Series(d5_list)
+    gdf['mean_dev_days'] = pd.Series(diff_days)
+    gdf.to_file(r'X:\temp\temp_Max\Data\Vector\VALIDATED.shp')
+    print(np.nanmean(np.abs(diff_n_mows)), 'mean deviation n mowings abs')
+    print(np.nanmean((diff_n_mows)), 'mean deviation n mowings')
 
-    gdf.to_file(r'\\141.20.140.91\SAN\_ProjectsII\Grassland\temp\temp_Marcel\FL_mowing_reference\mowingEvents_3035_out')
-    print(np.mean(np.abs(diff_n_mows)), 'mean deviation n mowings abs')
-    print(np.mean((diff_n_mows)), 'mean deviation n mowings')
+    #ab = itertools.chain(*diff_days)
+    #diff_days_array = np.array(list(ab))
 
-    ab = itertools.chain(*diff_days)
-    diff_days_array = np.array(list(ab))
-
-    print(diff_days_array)
-    print(diff_days_array.mean())
+    print(diff_days)
+    print(np.nanmean(diff_days))
